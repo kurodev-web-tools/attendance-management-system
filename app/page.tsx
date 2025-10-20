@@ -143,9 +143,9 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // JSTで現在時刻を取得（正しい方法）
+    // 現在時刻を取得（UTCで保存、JSTで表示）
     const now = new Date().toISOString()
-    console.log('UTC時刻:', now)
+    console.log('保存する時刻（UTC）:', now)
     console.log('現在時刻（JST）:', new Date().toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
     // 状態を完全にリセット
@@ -194,10 +194,8 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // JSTで現在時刻を取得（正しい方法）
+    // 現在時刻を取得（UTCで保存、JSTで表示）
     const now = new Date().toISOString()
-    console.log('UTC時刻:', now)
-    console.log('現在時刻（JST）:', new Date().toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
     setIsCheckedIn(false)
     setIsOnBreak(false)
@@ -264,10 +262,8 @@ export default function Home() {
   const handleBreakStart = async () => {
     if (!session?.user?.email) return
 
-    // JSTで現在時刻を取得（正しい方法）
+    // 現在時刻を取得（UTCで保存、JSTで表示）
     const now = new Date().toISOString()
-    console.log('UTC時刻:', now)
-    console.log('現在時刻（JST）:', new Date().toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
     setIsOnBreak(true)
 
@@ -291,10 +287,8 @@ export default function Home() {
   const handleBreakEnd = async () => {
     if (!session?.user?.email) return
 
-    // JSTで現在時刻を取得（正しい方法）
+    // 現在時刻を取得（UTCで保存、JSTで表示）
     const now = new Date().toISOString()
-    console.log('UTC時刻:', now)
-    console.log('現在時刻（JST）:', new Date().toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
     setIsOnBreak(false)
 
