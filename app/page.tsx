@@ -23,8 +23,9 @@ export default function Home() {
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // 今日の日付を取得
-  const today = new Date().toISOString().split('T')[0]
+  // 今日の日付を取得（JST基準）
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
+  console.log('今日の日付（JST）:', today)
 
   // 今日の勤務時間を計算（currentTimeを依存関係に追加してリアルタイム更新）
   const workTimeCalculation = calculateTodayWorkTime(
