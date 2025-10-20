@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut } from 'lucide-react'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
+import { calculateTodayWorkTime } from '@/lib/timeUtils'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -23,6 +24,14 @@ export default function Home() {
 
   // 今日の日付を取得
   const today = new Date().toISOString().split('T')[0]
+
+  // 今日の勤務時間を計算
+  const workTimeCalculation = calculateTodayWorkTime(
+    checkInTime,
+    checkOutTime,
+    breakStartTime,
+    breakEndTime
+  )
 
   // 今日のデータを読み込み
   const loadTodayData = useCallback(async () => {
@@ -74,6 +83,7 @@ export default function Home() {
       loadTodayData()
     }
   }, [session?.user, today, loadTodayData])
+
 
   // ローディング中または認証されていない場合はログインページにリダイレクト
   if (status === 'loading' || loading) {
@@ -264,16 +274,42 @@ export default function Home() {
         </div>
 
         {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">今日の勤務時間</CardTitle>
               <Clock className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">8時間</div>
+              <div className="text-2xl font-bold">{workTimeCalculation.formattedNetWorkTime}</div>
               <p className="text-xs text-muted-foreground">
-                通常勤務時間
+                実働時間
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">総勤務時間</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{workTimeCalculation.formattedWorkTime}</div>
+              <p className="text-xs text-muted-foreground">
+                休憩時間含む
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">休憩時間</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{workTimeCalculation.formattedBreakTime}</div>
+              <p className="text-xs text-muted-foreground">
+                累計休憩時間
               </p>
             </CardContent>
           </Card>

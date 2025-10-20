@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Clock, LogIn, LogOut, Coffee } from 'lucide-react'
+import { formatTime } from '@/lib/timeUtils'
 
 interface AttendanceButtonsProps {
   isCheckedIn: boolean
@@ -31,12 +32,6 @@ export function AttendanceButtons({
   onBreakEnd,
   disabled = false
 }: AttendanceButtonsProps) {
-  const formatTime = (time: string) => {
-    return new Date(time).toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
 
   return (
     <Card className="w-full max-w-md">
