@@ -85,12 +85,14 @@ export function getCurrentTime(): string {
   return new Date().toISOString()
 }
 
-// 時間文字列をフォーマットする関数
+// 時間文字列をフォーマットする関数（JST対応）
 export function formatTime(timeString: string): string {
   const date = new Date(timeString)
+  // ローカルタイムゾーンで表示（JST）
   return date.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: 'Asia/Tokyo'
   })
 }

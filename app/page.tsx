@@ -47,10 +47,15 @@ export default function Home() {
           // 勤怠記録を取得
           try {
             const attendanceData = await getAttendanceRecord(userId, today)
+            console.log('読み込んだ勤怠データ:', attendanceData)
+            
             if (attendanceData) {
               // 最新の出勤記録のみを使用（退勤後に再度出勤した場合）
               const latestCheckIn = attendanceData.check_in_time
               const latestCheckOut = attendanceData.check_out_time
+              
+              console.log('出勤時刻:', latestCheckIn)
+              console.log('退勤時刻:', latestCheckOut)
               
               // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
               const isCurrentlyWorking = !!latestCheckIn && !latestCheckOut
@@ -139,7 +144,7 @@ export default function Home() {
     setLoading(true)
     const now = new Date().toISOString()
     
-    // 状態を先にクリア
+    // 状態を完全にリセット
     setCheckOutTime(undefined)
     setBreakStartTime(undefined)
     setBreakEndTime(undefined)
@@ -150,22 +155,18 @@ export default function Home() {
     setIsCheckedIn(true)
 
     try {
-        await saveAttendanceRecord({
-          user_id: session.user.email,
-          date: today,
-          check_in_time: now,
-          check_out_time: null, // 明示的にnullに設定
-          break_start_time: null, // 明示的にnullに設定
-          break_end_time: null, // 明示的にnullに設定
-        })
-        toast.success('出勤記録を保存しました')
-        } catch (error) {
-          console.error('出勤記録の保存エラー:', error)
-          toast.error('出勤記録の保存に失敗しました。もう一度お試しください。')
-        }
+      // 出勤記録を保存（すべての時刻をリセット）
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        check_in_time: now,
+        check_out_time: null,
+        break_start_time: null,
+        break_end_time: null,
+      })
+      toast.success('出勤記録を保存しました')
 
-    // 忙しさレベルもリセット
-    try {
+      // 忙しさレベルもリセット
       await saveBusyLevel({
         user_id: session.user.email,
         date: today,
@@ -173,8 +174,8 @@ export default function Home() {
         comment: '',
       })
     } catch (error) {
-      console.error('忙しさレベルリセットの保存エラー:', error)
-      toast.error('忙しさレベルリセットの保存に失敗しました。')
+      console.error('出勤記録の保存エラー:', error)
+      toast.error('出勤記録の保存に失敗しました。もう一度お試しください。')
     } finally {
       setLoading(false)
     }
