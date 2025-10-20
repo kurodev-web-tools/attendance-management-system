@@ -148,14 +148,11 @@ export default function Home() {
       console.error('退勤記録の保存エラー:', error)
     }
 
-    // 退勤後、再度出勤可能にするため、状態をリセット
+    // 退勤後、再度出勤可能にするため、出勤状態のみリセット
     setTimeout(() => {
       setIsCheckedIn(false)
-      setCheckInTime(undefined)
-      setCheckOutTime(undefined)
-      setBreakStartTime(undefined)
-      setBreakEndTime(undefined)
-    }, 2000) // 2秒後に自動リセット
+      // 時刻データは保持（データベースから読み込まれるため）
+    }, 2000) // 2秒後に出勤状態のみリセット
   }
 
   // 新しい日へのリセット処理
@@ -166,6 +163,8 @@ export default function Home() {
     setCheckOutTime(undefined)
     setBreakStartTime(undefined)
     setBreakEndTime(undefined)
+    setBusyLevel(50)
+    setBusyComment('')
   }
 
   // 休憩開始処理
