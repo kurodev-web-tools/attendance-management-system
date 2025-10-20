@@ -15,7 +15,8 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, user }) {
-      if (session?.user) {
+      if (session?.user && user) {
+        // @ts-expect-error - NextAuthの型定義の制限を回避
         session.user.id = user.id
       }
       return session
