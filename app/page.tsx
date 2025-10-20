@@ -142,8 +142,10 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // JSTで現在時刻を取得
-    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
+    // JSTで現在時刻を取得（正しいISO形式）
+    const jstNow = new Date()
+    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
+    const now = jstTime.toISOString()
     
     // 状態を完全にリセット
     setCheckOutTime(undefined)
@@ -152,7 +154,8 @@ export default function Home() {
     setIsOnBreak(false)
     setBusyLevel(50)
     setBusyComment('')
-    setCheckInTime(now)
+    
+    // 出勤状態を設定（時刻は保存後に設定）
     setIsCheckedIn(true)
 
     try {
@@ -165,8 +168,7 @@ export default function Home() {
         break_start_time: null,
         break_end_time: null,
       })
-      toast.success('出勤記録を保存しました')
-
+      
       // 忙しさレベルもリセット
       await saveBusyLevel({
         user_id: session.user.email,
@@ -174,6 +176,10 @@ export default function Home() {
         level: 50,
         comment: '',
       })
+      
+      // 保存成功後に時刻を設定
+      setCheckInTime(now)
+      toast.success('出勤記録を保存しました')
     } catch (error) {
       console.error('出勤記録の保存エラー:', error)
       toast.error('出勤記録の保存に失敗しました。もう一度お試しください。')
@@ -187,9 +193,11 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // JSTで現在時刻を取得
-    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
-    setCheckOutTime(now)
+    // JSTで現在時刻を取得（正しいISO形式）
+    const jstNow = new Date()
+    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
+    const now = jstTime.toISOString()
+    
     setIsCheckedIn(false)
     setIsOnBreak(false)
     // 休憩時刻は保持（履歴として残す）
@@ -200,6 +208,9 @@ export default function Home() {
         date: today,
         check_out_time: now,
       })
+      
+      // 保存成功後に時刻を設定
+      setCheckOutTime(now)
       toast.success('退勤記録を保存しました')
     } catch (error) {
       console.error('退勤記録の保存エラー:', error)
@@ -252,9 +263,11 @@ export default function Home() {
   const handleBreakStart = async () => {
     if (!session?.user?.email) return
 
-    // JSTで現在時刻を取得
-    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
-    setBreakStartTime(now)
+    // JSTで現在時刻を取得（正しいISO形式）
+    const jstNow = new Date()
+    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
+    const now = jstTime.toISOString()
+    
     setIsOnBreak(true)
 
     try {
@@ -263,6 +276,9 @@ export default function Home() {
         date: today,
         break_start_time: now,
       })
+      
+      // 保存成功後に時刻を設定
+      setBreakStartTime(now)
       toast.success('休憩開始を記録しました')
     } catch (error) {
       console.error('休憩開始記録の保存エラー:', error)
@@ -274,9 +290,11 @@ export default function Home() {
   const handleBreakEnd = async () => {
     if (!session?.user?.email) return
 
-    // JSTで現在時刻を取得
-    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
-    setBreakEndTime(now)
+    // JSTで現在時刻を取得（正しいISO形式）
+    const jstNow = new Date()
+    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
+    const now = jstTime.toISOString()
+    
     setIsOnBreak(false)
 
     try {
@@ -285,6 +303,9 @@ export default function Home() {
         date: today,
         break_end_time: now,
       })
+      
+      // 保存成功後に時刻を設定
+      setBreakEndTime(now)
       toast.success('休憩終了を記録しました')
     } catch (error) {
       console.error('休憩終了記録の保存エラー:', error)
