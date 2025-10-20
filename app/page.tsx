@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut } from 'lucide-react'
+import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -18,9 +19,54 @@ export default function Home() {
   const [breakEndTime, setBreakEndTime] = useState<string>()
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  // 今日の日付を取得
+  const today = new Date().toISOString().split('T')[0]
+
+  // コンポーネントマウント時にデータを読み込み
+  useEffect(() => {
+    if (session?.user) {
+      loadTodayData()
+    }
+  }, [session?.user, today])
+
+  // 今日のデータを読み込み
+  const loadTodayData = async () => {
+    if (!session?.user?.email) return
+
+    try {
+      setLoading(true)
+      
+      // ユーザーIDとしてemailを使用（一時的な解決策）
+      const userId = session.user.email
+      
+      // 勤怠記録を取得
+      const attendanceData = await getAttendanceRecord(userId, today)
+      if (attendanceData) {
+        setIsCheckedIn(!!attendanceData.check_in_time)
+        setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
+        setCheckInTime(attendanceData.check_in_time)
+        setCheckOutTime(attendanceData.check_out_time)
+        setBreakStartTime(attendanceData.break_start_time)
+        setBreakEndTime(attendanceData.break_end_time)
+      }
+
+      // 忙しさレベルを取得
+      const busyData = await getBusyLevel(userId, today)
+      if (busyData) {
+        setBusyLevel(busyData.level)
+        setBusyComment(busyData.comment || '')
+      }
+    } catch (error) {
+      console.error('データの読み込みエラー:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // ローディング中または認証されていない場合はログインページにリダイレクト
-  if (status === 'loading') {
+  if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -45,20 +91,43 @@ export default function Home() {
   }
 
   // 出勤処理
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
+    if (!session?.user?.email) return
+
     const now = new Date().toISOString()
     setCheckInTime(now)
     setIsCheckedIn(true)
-    // TODO: Supabaseに保存
+
+    try {
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        check_in_time: now,
+      })
+    } catch (error) {
+      console.error('出勤記録の保存エラー:', error)
+    }
   }
 
   // 退勤処理
-  const handleCheckOut = () => {
+  const handleCheckOut = async () => {
+    if (!session?.user?.email) return
+
     const now = new Date().toISOString()
     setCheckOutTime(now)
     setIsCheckedIn(false)
     setIsOnBreak(false)
-    // TODO: Supabaseに保存
+
+    try {
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        check_out_time: now,
+      })
+    } catch (error) {
+      console.error('退勤記録の保存エラー:', error)
+    }
+
     // 退勤後、再度出勤可能にするため、状態をリセット
     setTimeout(() => {
       setIsCheckedIn(false)
@@ -80,26 +149,60 @@ export default function Home() {
   }
 
   // 休憩開始処理
-  const handleBreakStart = () => {
+  const handleBreakStart = async () => {
+    if (!session?.user?.email) return
+
     const now = new Date().toISOString()
     setBreakStartTime(now)
     setIsOnBreak(true)
-    // TODO: Supabaseに保存
+
+    try {
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        break_start_time: now,
+      })
+    } catch (error) {
+      console.error('休憩開始記録の保存エラー:', error)
+    }
   }
 
   // 休憩終了処理
-  const handleBreakEnd = () => {
+  const handleBreakEnd = async () => {
+    if (!session?.user?.email) return
+
     const now = new Date().toISOString()
     setBreakEndTime(now)
     setIsOnBreak(false)
-    // TODO: Supabaseに保存
+
+    try {
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        break_end_time: now,
+      })
+    } catch (error) {
+      console.error('休憩終了記録の保存エラー:', error)
+    }
   }
 
   // 忙しさレベル更新処理
-  const handleBusyLevelUpdate = (level: number, comment: string) => {
+  const handleBusyLevelUpdate = async (level: number, comment: string) => {
+    if (!session?.user?.email) return
+
     setBusyLevel(level)
     setBusyComment(comment)
-    // TODO: Supabaseに保存
+
+    try {
+      await saveBusyLevel({
+        user_id: session.user.email,
+        date: today,
+        level: level,
+        comment: comment,
+      })
+    } catch (error) {
+      console.error('忙しさレベル記録の保存エラー:', error)
+    }
   }
 
   return (

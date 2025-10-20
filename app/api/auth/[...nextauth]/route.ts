@@ -12,13 +12,16 @@ const handler = NextAuth({
     async session({ session, token }) {
       if (session?.user && token) {
         // @ts-expect-error - NextAuthの型定義の制限を回避
-        session.user.id = token.sub
+        session.user.id = token.sub || token.id
       }
       return session
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
+      }
+      if (account) {
+        token.sub = account.providerAccountId
       }
       return token
     },
