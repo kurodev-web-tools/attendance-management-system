@@ -64,9 +64,15 @@ export default function Home() {
                 console.log('退勤時刻（JST表示）:', new Date(latestCheckOut).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
               }
               
-              // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
+              // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中（休憩中も含む）
               const isCurrentlyWorking = !!latestCheckIn && !latestCheckOut
               setIsCheckedIn(isCurrentlyWorking)
+              console.log('出勤状態判定:', { latestCheckIn, latestCheckOut, isCurrentlyWorking })
+              console.log('退勤後の出勤時刻保持確認:', { 
+                checkInTime: latestCheckIn, 
+                checkOutTime: latestCheckOut,
+                shouldShowCheckIn: latestCheckIn ? '表示する' : '表示しない'
+              })
               
               // 休憩状態の判定
               setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
@@ -164,27 +170,33 @@ export default function Home() {
     console.log('保存する時刻（サーバー時刻）:', now)
     console.log('表示時刻（JST）:', new Date(now).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
-    // 状態を完全にリセット
-    setCheckOutTime(undefined)
+    // 再出勤時は退勤時刻を保持（勤務時間計算のため）
+    // 休憩時刻のみリセット
     setBreakStartTime(undefined)
     setBreakEndTime(undefined)
     setIsOnBreak(false)
     setBusyLevel(50)
     setBusyComment('')
     
+    console.log('再出勤時の状態管理:', {
+      keepCheckOutTime: checkOutTime ? '保持' : 'なし',
+      resetBreakTimes: 'リセット',
+      resetBusyLevel: 'リセット'
+    })
+    
     // 出勤状態を設定（時刻は保存後に設定）
     setIsCheckedIn(true)
 
-    try {
-      // 出勤記録を保存（すべての時刻をリセット）
-      await saveAttendanceRecord({
-        user_id: session.user.email,
-        date: today,
-        check_in_time: now,
-        check_out_time: null,
-        break_start_time: null,
-        break_end_time: null,
-      })
+        try {
+          // 出勤記録を保存（退勤時刻は保持、休憩時刻のみリセット）
+          await saveAttendanceRecord({
+            user_id: session.user.email,
+            date: today,
+            check_in_time: now,
+            check_out_time: checkOutTime || null, // 退勤時刻を保持
+            break_start_time: null,
+            break_end_time: null,
+          })
       
       // 忙しさレベルもリセット
       await saveBusyLevel({
