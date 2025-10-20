@@ -138,13 +138,15 @@ export default function Home() {
 
     setLoading(true)
     const now = new Date().toISOString()
+    
+    // 状態を先にクリア
+    setCheckOutTime(undefined)
+    setBreakStartTime(undefined)
+    setBreakEndTime(undefined)
+    setIsOnBreak(false)
+    setBusyLevel(50)
+    setBusyComment('')
     setCheckInTime(now)
-    setCheckOutTime(undefined) // 再度出勤時は退勤時刻をクリア
-    setBreakStartTime(undefined) // 休憩開始時刻もクリア
-    setBreakEndTime(undefined) // 休憩終了時刻もクリア
-    setIsOnBreak(false) // 休憩状態もリセット
-    setBusyLevel(50) // 忙しさレベルもリセット
-    setBusyComment('') // 忙しさコメントもリセット
     setIsCheckedIn(true)
 
     try {
@@ -152,9 +154,9 @@ export default function Home() {
           user_id: session.user.email,
           date: today,
           check_in_time: now,
-          check_out_time: undefined, // 退勤時刻をundefinedに設定
-          break_start_time: undefined, // 休憩開始時刻もクリア
-          break_end_time: undefined, // 休憩終了時刻もクリア
+          check_out_time: null, // 明示的にnullに設定
+          break_start_time: null, // 明示的にnullに設定
+          break_end_time: null, // 明示的にnullに設定
         })
         toast.success('出勤記録を保存しました')
         } catch (error) {
@@ -176,11 +178,6 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-
-    // データを再読み込みして最新状態を反映
-    setTimeout(() => {
-      loadTodayData()
-    }, 500)
   }
 
   // 退勤処理
@@ -207,11 +204,6 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
-
-    // データを再読み込みして最新状態を反映
-    setTimeout(() => {
-      loadTodayData()
-    }, 500)
   }
 
   // 新しい日へのリセット処理
