@@ -14,10 +14,20 @@ import { supabase, AttendanceRecord, BusyLevel } from './supabase'
 
 // 勤怠記録の保存
 export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
+  // undefinedをnullに変換
+  const cleanRecord = {
+    ...record,
+    check_in_time: record.check_in_time || null,
+    check_out_time: record.check_out_time || null,
+    break_start_time: record.break_start_time || null,
+    break_end_time: record.break_end_time || null,
+  }
+
   const { data, error } = await supabase
     .from('attendance_records')
-    .upsert(record, { 
-      onConflict: 'user_id,date' // 重複時の処理を指定
+    .upsert(cleanRecord, { 
+      onConflict: 'user_id,date', // 重複時の処理を指定
+      ignoreDuplicates: false // 重複を無視せず更新
     })
     .select()
 

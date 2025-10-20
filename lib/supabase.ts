@@ -19,10 +19,10 @@ export interface AttendanceRecord {
   id: string
   user_id: string
   date: string
-  check_in_time?: string
-  check_out_time?: string
-  break_start_time?: string
-  break_end_time?: string
+  check_in_time?: string | null
+  check_out_time?: string | null
+  break_start_time?: string | null
+  break_end_time?: string | null
   total_work_hours?: number
   total_break_hours?: number
   created_at: string

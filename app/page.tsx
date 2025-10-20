@@ -47,12 +47,14 @@ export default function Home() {
       try {
         const attendanceData = await getAttendanceRecord(userId, today)
         if (attendanceData) {
-          setIsCheckedIn(!!attendanceData.check_in_time)
+          // 退勤時刻がある場合は出勤状態をfalseに設定
+          const hasCheckedOut = !!attendanceData.check_out_time
+          setIsCheckedIn(!hasCheckedOut && !!attendanceData.check_in_time)
           setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
-          setCheckInTime(attendanceData.check_in_time)
-          setCheckOutTime(attendanceData.check_out_time)
-          setBreakStartTime(attendanceData.break_start_time)
-          setBreakEndTime(attendanceData.break_end_time)
+          setCheckInTime(attendanceData.check_in_time || undefined)
+          setCheckOutTime(attendanceData.check_out_time || undefined)
+          setBreakStartTime(attendanceData.break_start_time || undefined)
+          setBreakEndTime(attendanceData.break_end_time || undefined)
         }
       } catch (attendanceError) {
         console.error('勤怠記録の読み込みエラー:', attendanceError)
@@ -114,8 +116,15 @@ export default function Home() {
   const handleCheckIn = async () => {
     if (!session?.user?.email) return
 
+    setLoading(true)
     const now = new Date().toISOString()
     setCheckInTime(now)
+    setCheckOutTime(undefined) // 再度出勤時は退勤時刻をクリア
+    setBreakStartTime(undefined) // 休憩開始時刻もクリア
+    setBreakEndTime(undefined) // 休憩終了時刻もクリア
+    setIsOnBreak(false) // 休憩状態もリセット
+    setBusyLevel(50) // 忙しさレベルもリセット
+    setBusyComment('') // 忙しさコメントもリセット
     setIsCheckedIn(true)
 
     try {
@@ -123,9 +132,26 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
+        check_out_time: undefined, // 退勤時刻をundefinedに設定
+        break_start_time: undefined, // 休憩開始時刻もクリア
+        break_end_time: undefined, // 休憩終了時刻もクリア
       })
     } catch (error) {
       console.error('出勤記録の保存エラー:', error)
+    }
+
+    // 忙しさレベルもリセット
+    try {
+      await saveBusyLevel({
+        user_id: session.user.email,
+        date: today,
+        level: 50,
+        comment: '',
+      })
+    } catch (error) {
+      console.error('忙しさレベルリセットの保存エラー:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -133,10 +159,12 @@ export default function Home() {
   const handleCheckOut = async () => {
     if (!session?.user?.email) return
 
+    setLoading(true)
     const now = new Date().toISOString()
     setCheckOutTime(now)
     setIsCheckedIn(false)
     setIsOnBreak(false)
+    // 休憩時刻は保持（履歴として残す）
 
     try {
       await saveAttendanceRecord({
@@ -146,6 +174,8 @@ export default function Home() {
       })
     } catch (error) {
       console.error('退勤記録の保存エラー:', error)
+    } finally {
+      setLoading(false)
     }
 
     // 退勤後、再度出勤可能にするため、出勤状態のみリセット

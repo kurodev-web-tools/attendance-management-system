@@ -44,7 +44,16 @@ export function calculateTodayWorkTime(
   // 出勤時刻がある場合
   if (checkInTime) {
     const endTime = checkOutTime || new Date().toISOString()
-    totalWorkMinutes = calculateMinutesBetween(checkInTime, endTime)
+    
+    // 出勤時刻が退勤時刻より後の場合は0分とする
+    const start = new Date(checkInTime)
+    const end = new Date(endTime)
+    
+    if (start < end) {
+      totalWorkMinutes = calculateMinutesBetween(checkInTime, endTime)
+    } else {
+      totalWorkMinutes = 0
+    }
   }
 
   // 休憩時間の計算
