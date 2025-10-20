@@ -19,7 +19,7 @@ export async function getCurrentTimeFromServer(): Promise<string> {
 }
 
 // 2つのISO文字列間の分数を計算するヘルパー関数
-function calculateMinutesBetween(startIso: string, endIso: string): number {
+export function calculateMinutesBetween(startIso: string, endIso: string): number {
   const start = new Date(startIso)
   const end = new Date(endIso)
   return Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60)))
@@ -86,39 +86,22 @@ export function calculateTodayWorkTime(
 
   // 出勤時刻がある場合
   if (checkInTime) {
-    // 現在の勤務時間を計算
-    const endTime = checkOutTime || new Date().toISOString()
-    
-    // 出勤時刻が退勤時刻より後の場合は0分とする
     const start = new Date(checkInTime)
-    const end = new Date(endTime)
     
-    if (start < end) {
-      totalWorkMinutes = calculateMinutesBetween(checkInTime, endTime)
-    } else {
-      // 出勤時刻が退勤時刻より後の場合（再出勤時など）
-      // 現在の出勤時刻から現在時刻までの勤務時間を計算
-      if (!checkOutTime) {
-        // 退勤していない場合は現在時刻まで
-        totalWorkMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
-      } else {
-        // 退勤済みの場合は0分（前回の勤務時間は既に計算済み）
-        totalWorkMinutes = 0
+    if (checkOutTime) {
+      // 退勤済みの場合：出勤時刻から退勤時刻までの勤務時間
+      const end = new Date(checkOutTime)
+      if (start < end) {
+        totalWorkMinutes = calculateMinutesBetween(checkInTime, checkOutTime)
       }
-      
-      console.log('再出勤時の勤務時間計算:', {
-        checkInTime: start.toISOString(),
-        endTime: end.toISOString(),
-        checkOutTime: checkOutTime || 'なし',
-        totalWorkMinutes,
-        isCurrentlyWorking: !checkOutTime
-      })
+    } else {
+      // 勤務中の場合：出勤時刻から現在時刻までの勤務時間
+      totalWorkMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
     }
     
     console.log('勤務時間計算:', {
       checkInTime,
-      checkOutTime,
-      endTime,
+      checkOutTime: checkOutTime || '勤務中',
       totalWorkMinutes,
       isCurrentlyWorking: !checkOutTime
     })

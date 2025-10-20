@@ -9,7 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut } from 'lucide-react'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
-import { calculateTodayWorkTime, getCurrentTimeFromServer } from '@/lib/timeUtils'
+import { supabase } from '@/lib/supabase'
+import { calculateTodayWorkTime, getCurrentTimeFromServer, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -34,6 +35,50 @@ export default function Home() {
     breakStartTime,
     breakEndTime
   )
+  
+  // 累積勤務時間を計算（複数回の出退勤を考慮）
+  const [totalWorkMinutes, setTotalWorkMinutes] = useState(0)
+  
+  useEffect(() => {
+    // 累積勤務時間を計算
+    const calculateTotalWorkTime = async () => {
+      if (session?.user?.email) {
+        try {
+          // 今日の全ての勤怠記録を取得
+          const { data: allRecords } = await supabase
+            .from('attendance_records')
+            .select('check_in_time, check_out_time')
+            .eq('user_id', session.user.email)
+            .eq('date', today)
+            .not('check_in_time', 'is', null)
+          
+          if (allRecords && allRecords.length > 0) {
+            let totalMinutes = 0
+            
+            allRecords.forEach(record => {
+              if (record.check_in_time && record.check_out_time) {
+                // 出退勤両方がある場合のみ計算
+                const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
+                totalMinutes += minutes
+              }
+            })
+            
+            // 現在勤務中の場合は追加計算
+            if (isCheckedIn && checkInTime && !checkOutTime) {
+              const currentMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
+              totalMinutes += currentMinutes
+            }
+            
+            setTotalWorkMinutes(totalMinutes)
+          }
+        } catch (error) {
+          console.error('累積勤務時間の計算エラー:', error)
+        }
+      }
+    }
+    
+    calculateTotalWorkTime()
+  }, [session?.user?.email, today, isCheckedIn, checkInTime, checkOutTime])
 
   // 今日のデータを読み込み
   const loadTodayData = useCallback(async () => {
@@ -194,12 +239,12 @@ export default function Home() {
     setIsCheckedIn(true)
 
     try {
-      // 出勤記録を保存（退勤時刻は保持、休憩時刻のみリセット）
+      // 再出勤記録を保存（新しい出勤記録として保存）
       console.log('保存する勤怠データ:', {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
-        check_out_time: checkOutTime || null,
+        check_out_time: null, // 再出勤時は退勤時刻をnullに
         break_start_time: null,
         break_end_time: null,
       })
@@ -208,7 +253,7 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
-        check_out_time: checkOutTime || null, // 退勤時刻を保持
+        check_out_time: null, // 再出勤時は退勤時刻をnullに
         break_start_time: null,
         break_end_time: null,
       })
@@ -450,6 +495,19 @@ export default function Home() {
               <div className="text-2xl font-bold">{workTimeCalculation.formattedWorkTime}</div>
               <p className="text-xs text-muted-foreground">
                 休憩時間含む
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">累積勤務時間</CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatMinutesToTime(totalWorkMinutes)}</div>
+              <p className="text-xs text-muted-foreground">
+                複数回出退勤合計
               </p>
             </CardContent>
           </Card>
