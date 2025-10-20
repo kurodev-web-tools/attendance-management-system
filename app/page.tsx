@@ -71,11 +71,14 @@ export default function Home() {
               // 休憩状態の判定
               setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
               
-              // 時刻データを設定
+              // 時刻データを設定（確実にUTC文字列として設定）
               setCheckInTime(latestCheckIn || undefined)
               setCheckOutTime(latestCheckOut || undefined)
               setBreakStartTime(attendanceData.break_start_time || undefined)
               setBreakEndTime(attendanceData.break_end_time || undefined)
+              
+              console.log('設定された出勤時刻:', latestCheckIn)
+              console.log('設定された退勤時刻:', latestCheckOut)
             }
           } catch (attendanceError) {
             console.error('勤怠記録の読み込みエラー:', attendanceError)

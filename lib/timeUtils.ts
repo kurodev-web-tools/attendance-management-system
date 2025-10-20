@@ -35,19 +35,31 @@ export function formatMinutesToTime(minutes: number): string {
 
 // 時刻を「HH:MM」形式にフォーマットする関数
 export function formatTime(isoString: string): string {
-  // データベースに保存されたUTC時刻をJSTで表示
-  const date = new Date(isoString)
-  const jstTime = date.toLocaleTimeString('ja-JP', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Tokyo'
-  })
-  
-  // デバッグログ
-  console.log(`formatTime - 入力UTC: ${isoString} → 出力JST: ${jstTime}`)
-  
-  return jstTime
+  try {
+    // データベースに保存されたUTC時刻をJSTで表示
+    const date = new Date(isoString)
+    
+    // 無効な日付の場合のチェック
+    if (isNaN(date.getTime())) {
+      console.error(`formatTime - 無効な日付文字列: ${isoString}`)
+      return '--:--'
+    }
+    
+    const jstTime = date.toLocaleTimeString('ja-JP', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Tokyo'
+    })
+    
+    // デバッグログ
+    console.log(`formatTime - 入力UTC: ${isoString} → 出力JST: ${jstTime}`)
+    
+    return jstTime
+  } catch (error) {
+    console.error(`formatTime - エラー: ${error}, 入力: ${isoString}`)
+    return '--:--'
+  }
 }
 
 // 今日の勤務時間を計算する関数
