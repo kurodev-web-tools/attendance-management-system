@@ -67,7 +67,12 @@ export default function Home() {
               // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中（休憩中も含む）
               const isCurrentlyWorking = !!latestCheckIn && !latestCheckOut
               setIsCheckedIn(isCurrentlyWorking)
-              console.log('出勤状態判定:', { latestCheckIn, latestCheckOut, isCurrentlyWorking })
+              console.log('出勤状態判定:', { 
+                latestCheckIn, 
+                latestCheckOut, 
+                isCurrentlyWorking,
+                reason: isCurrentlyWorking ? '出勤中' : latestCheckOut ? '退勤済み' : '未出勤'
+              })
               console.log('退勤後の出勤時刻保持確認:', { 
                 checkInTime: latestCheckIn, 
                 checkOutTime: latestCheckOut,
@@ -170,21 +175,20 @@ export default function Home() {
     console.log('保存する時刻（サーバー時刻）:', now)
     console.log('表示時刻（JST）:', new Date(now).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
-    // 再出勤時は退勤時刻を保持（勤務時間計算のため）
-    // 休憩時刻のみリセット
+    // 再出勤時の状態管理
+    console.log('再出勤前の状態:', {
+      currentCheckOutTime: checkOutTime,
+      willKeepCheckOutTime: checkOutTime ? '保持' : 'なし'
+    })
+    
+    // 休憩時刻のみリセット（退勤時刻は保持）
     setBreakStartTime(undefined)
     setBreakEndTime(undefined)
     setIsOnBreak(false)
     setBusyLevel(50)
     setBusyComment('')
     
-    console.log('再出勤時の状態管理:', {
-      keepCheckOutTime: checkOutTime ? '保持' : 'なし',
-      resetBreakTimes: 'リセット',
-      resetBusyLevel: 'リセット'
-    })
-    
-    // 出勤状態を設定（時刻は保存後に設定）
+    // 出勤状態を設定
     setIsCheckedIn(true)
 
     try {

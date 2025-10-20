@@ -86,6 +86,7 @@ export function calculateTodayWorkTime(
 
   // 出勤時刻がある場合
   if (checkInTime) {
+    // 現在の勤務時間を計算
     const endTime = checkOutTime || new Date().toISOString()
     
     // 出勤時刻が退勤時刻より後の場合は0分とする
@@ -97,6 +98,14 @@ export function calculateTodayWorkTime(
     } else {
       totalWorkMinutes = 0
     }
+    
+    console.log('勤務時間計算:', {
+      checkInTime,
+      checkOutTime,
+      endTime,
+      totalWorkMinutes,
+      isCurrentlyWorking: !checkOutTime
+    })
   }
 
   // 休憩時間の計算

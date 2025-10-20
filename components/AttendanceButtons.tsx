@@ -70,21 +70,9 @@ export function AttendanceButtons({
             <div className="text-sm text-green-700">
               出勤時刻: {checkInTime ? formatTime(checkInTime) : '--:--'}
             </div>
-            {/* 追加デバッグ情報 */}
-            {checkInTime && (
-              <div className="text-xs text-gray-400">
-                生データ: {checkInTime}
-              </div>
-            )}
             {checkOutTime && (
               <div className="text-sm text-red-700">
                 退勤時刻: {formatTime(checkOutTime)}
-              </div>
-            )}
-            {/* デバッグ情報 */}
-            {checkInTime && (
-              <div className="text-xs text-gray-500">
-                デバッグ - UTC: {checkInTime} | JST: {formatTime(checkInTime)}
               </div>
             )}
           </div>
