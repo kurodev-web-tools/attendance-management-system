@@ -60,6 +60,12 @@ export default function Home() {
                 // 出退勤両方がある場合のみ計算
                 const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
                 totalMinutes += minutes
+                console.log('累積勤務時間計算:', {
+                  checkInTime: record.check_in_time,
+                  checkOutTime: record.check_out_time,
+                  minutes,
+                  totalMinutes
+                })
               }
             })
             
@@ -67,9 +73,15 @@ export default function Home() {
             if (isCheckedIn && checkInTime && !checkOutTime) {
               const currentMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
               totalMinutes += currentMinutes
+              console.log('現在勤務中の追加計算:', {
+                checkInTime,
+                currentMinutes,
+                totalMinutes
+              })
             }
             
             setTotalWorkMinutes(totalMinutes)
+            console.log('最終累積勤務時間:', totalMinutes)
           }
         } catch (error) {
           console.error('累積勤務時間の計算エラー:', error)
@@ -366,6 +378,9 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         break_start_time: now,
+        // 出勤時刻も保持する
+        check_in_time: checkInTime || null,
+        check_out_time: checkOutTime || null,
       })
       
       // 保存成功後に時刻を設定
@@ -391,6 +406,9 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         break_end_time: now,
+        // 出勤時刻も保持する
+        check_in_time: checkInTime || null,
+        check_out_time: checkOutTime || null,
       })
       
       // 保存成功後に時刻を設定

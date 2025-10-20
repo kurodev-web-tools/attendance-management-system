@@ -22,7 +22,9 @@ export async function getCurrentTimeFromServer(): Promise<string> {
 export function calculateMinutesBetween(startIso: string, endIso: string): number {
   const start = new Date(startIso)
   const end = new Date(endIso)
-  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60)))
+  const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
+  // 1分未満でも1分として計算（勤務時間の最小単位）
+  return Math.max(1, Math.ceil(diffSeconds / 60))
 }
 
 // 分数を「X時間Y分」形式にフォーマットする関数
