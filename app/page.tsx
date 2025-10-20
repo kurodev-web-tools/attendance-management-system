@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
+import { toast } from 'sonner'
 import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,7 +26,7 @@ export default function Home() {
   // 今日の日付を取得
   const today = new Date().toISOString().split('T')[0]
 
-  // 今日の勤務時間を計算
+  // 今日の勤務時間を計算（currentTimeを依存関係に追加してリアルタイム更新）
   const workTimeCalculation = calculateTodayWorkTime(
     checkInTime,
     checkOutTime,
@@ -58,7 +59,7 @@ export default function Home() {
         }
       } catch (attendanceError) {
         console.error('勤怠記録の読み込みエラー:', attendanceError)
-        // エラーが発生してもアプリを継続
+        // エラーが発生してもアプリを継続（ユーザーには表示しない）
       }
 
       // 忙しさレベルを取得
@@ -70,7 +71,7 @@ export default function Home() {
         }
       } catch (busyError) {
         console.error('忙しさレベルの読み込みエラー:', busyError)
-        // エラーが発生してもアプリを継続
+        // エラーが発生してもアプリを継続（ユーザーには表示しない）
       }
     } catch (error) {
       console.error('データの読み込みエラー:', error)
@@ -86,6 +87,17 @@ export default function Home() {
     }
   }, [session?.user, today, loadTodayData])
 
+  // 勤務時間をリアルタイム更新（1分ごと）
+  useEffect(() => {
+    if (isCheckedIn && !checkOutTime) {
+      const timer = setInterval(() => {
+        // 強制的に再レンダリングをトリガー
+        setLoading(prev => !prev)
+      }, 60000) // 1分ごと
+
+      return () => clearInterval(timer)
+    }
+  }, [isCheckedIn, checkOutTime])
 
   // ローディング中または認証されていない場合はログインページにリダイレクト
   if (status === 'loading' || loading) {
@@ -128,17 +140,19 @@ export default function Home() {
     setIsCheckedIn(true)
 
     try {
-      await saveAttendanceRecord({
-        user_id: session.user.email,
-        date: today,
-        check_in_time: now,
-        check_out_time: undefined, // 退勤時刻をundefinedに設定
-        break_start_time: undefined, // 休憩開始時刻もクリア
-        break_end_time: undefined, // 休憩終了時刻もクリア
-      })
-    } catch (error) {
-      console.error('出勤記録の保存エラー:', error)
-    }
+        await saveAttendanceRecord({
+          user_id: session.user.email,
+          date: today,
+          check_in_time: now,
+          check_out_time: undefined, // 退勤時刻をundefinedに設定
+          break_start_time: undefined, // 休憩開始時刻もクリア
+          break_end_time: undefined, // 休憩終了時刻もクリア
+        })
+        toast.success('出勤記録を保存しました')
+        } catch (error) {
+          console.error('出勤記録の保存エラー:', error)
+          toast.error('出勤記録の保存に失敗しました。もう一度お試しください。')
+        }
 
     // 忙しさレベルもリセット
     try {
@@ -150,6 +164,7 @@ export default function Home() {
       })
     } catch (error) {
       console.error('忙しさレベルリセットの保存エラー:', error)
+      toast.error('忙しさレベルリセットの保存に失敗しました。')
     } finally {
       setLoading(false)
     }
@@ -172,8 +187,10 @@ export default function Home() {
         date: today,
         check_out_time: now,
       })
+      toast.success('退勤記録を保存しました')
     } catch (error) {
       console.error('退勤記録の保存エラー:', error)
+      toast.error('退勤記録の保存に失敗しました。もう一度お試しください。')
     } finally {
       setLoading(false)
     }
@@ -211,8 +228,10 @@ export default function Home() {
         date: today,
         break_start_time: now,
       })
+      toast.success('休憩開始を記録しました')
     } catch (error) {
       console.error('休憩開始記録の保存エラー:', error)
+      toast.error('休憩開始記録の保存に失敗しました。')
     }
   }
 
@@ -230,8 +249,10 @@ export default function Home() {
         date: today,
         break_end_time: now,
       })
+      toast.success('休憩終了を記録しました')
     } catch (error) {
       console.error('休憩終了記録の保存エラー:', error)
+      toast.error('休憩終了記録の保存に失敗しました。')
     }
   }
 
@@ -249,8 +270,10 @@ export default function Home() {
         level: level,
         comment: comment,
       })
+      toast.success('忙しさレベルを更新しました')
     } catch (error) {
       console.error('忙しさレベル記録の保存エラー:', error)
+      toast.error('忙しさレベル記録の保存に失敗しました。')
     }
   }
 
