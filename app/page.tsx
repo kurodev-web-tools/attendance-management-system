@@ -142,7 +142,8 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    const now = new Date().toISOString()
+    // JSTで現在時刻を取得
+    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
     
     // 状態を完全にリセット
     setCheckOutTime(undefined)
@@ -186,7 +187,8 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    const now = new Date().toISOString()
+    // JSTで現在時刻を取得
+    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
     setCheckOutTime(now)
     setIsCheckedIn(false)
     setIsOnBreak(false)
@@ -207,8 +209,11 @@ export default function Home() {
     }
   }
 
-  // 新しい日へのリセット処理
-  const resetForNewDay = () => {
+  // 新しい日へのリセット処理（データベースもクリア）
+  const resetForNewDay = async () => {
+    if (!session?.user?.email) return
+
+    // ローカル状態をリセット
     setIsCheckedIn(false)
     setIsOnBreak(false)
     setCheckInTime(undefined)
@@ -217,13 +222,38 @@ export default function Home() {
     setBreakEndTime(undefined)
     setBusyLevel(50)
     setBusyComment('')
+
+    // データベースもクリア
+    try {
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        check_in_time: null,
+        check_out_time: null,
+        break_start_time: null,
+        break_end_time: null,
+      })
+      
+      await saveBusyLevel({
+        user_id: session.user.email,
+        date: today,
+        level: 50,
+        comment: '',
+      })
+      
+      toast.success('新しい日を開始しました')
+    } catch (error) {
+      console.error('リセット処理エラー:', error)
+      toast.error('リセット処理に失敗しました')
+    }
   }
 
   // 休憩開始処理
   const handleBreakStart = async () => {
     if (!session?.user?.email) return
 
-    const now = new Date().toISOString()
+    // JSTで現在時刻を取得
+    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
     setBreakStartTime(now)
     setIsOnBreak(true)
 
@@ -244,7 +274,8 @@ export default function Home() {
   const handleBreakEnd = async () => {
     if (!session?.user?.email) return
 
-    const now = new Date().toISOString()
+    // JSTで現在時刻を取得
+    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
     setBreakEndTime(now)
     setIsOnBreak(false)
 

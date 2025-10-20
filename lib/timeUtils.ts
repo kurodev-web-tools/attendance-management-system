@@ -54,8 +54,9 @@ export function calculateTodayWorkTime(
         totalWorkMinutes = 0
       }
     } else {
-      // 退勤時刻がない場合（勤務中）
-      totalWorkMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
+      // 退勤時刻がない場合（勤務中）- JSTで現在時刻を取得
+      const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
+      totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
     }
   }
 
@@ -63,8 +64,9 @@ export function calculateTodayWorkTime(
   if (breakStartTime && breakEndTime) {
     breakMinutes = calculateMinutesBetween(breakStartTime, breakEndTime)
   } else if (breakStartTime && !breakEndTime) {
-    // 休憩中の場合、現在時刻まで
-    breakMinutes = calculateMinutesBetween(breakStartTime, new Date().toISOString())
+    // 休憩中の場合、現在時刻まで - JSTで現在時刻を取得
+    const now = new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '.000Z'
+    breakMinutes = calculateMinutesBetween(breakStartTime, now)
   }
 
   // 実働時間の計算
