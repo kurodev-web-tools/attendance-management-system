@@ -54,11 +54,8 @@ export function calculateTodayWorkTime(
         totalWorkMinutes = 0
       }
     } else {
-      // 退勤時刻がない場合（勤務中）- JSTで現在時刻を取得
-      const utcNow = new Date()
-      const jstOffset = 9 * 60 * 60 * 1000 // JSTはUTC+9時間（ミリ秒）
-      const jstNow = new Date(utcNow.getTime() + jstOffset)
-      const now = jstNow.toISOString()
+      // 退勤時刻がない場合（勤務中）
+      const now = new Date().toISOString()
       totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
     }
   }
@@ -67,11 +64,8 @@ export function calculateTodayWorkTime(
   if (breakStartTime && breakEndTime) {
     breakMinutes = calculateMinutesBetween(breakStartTime, breakEndTime)
   } else if (breakStartTime && !breakEndTime) {
-    // 休憩中の場合、現在時刻まで - JSTで現在時刻を取得
-    const utcNow = new Date()
-    const jstOffset = 9 * 60 * 60 * 1000 // JSTはUTC+9時間（ミリ秒）
-    const jstNow = new Date(utcNow.getTime() + jstOffset)
-    const now = jstNow.toISOString()
+    // 休憩中の場合、現在時刻まで
+    const now = new Date().toISOString()
     breakMinutes = calculateMinutesBetween(breakStartTime, now)
   }
 
@@ -95,11 +89,12 @@ export function getCurrentTime(): string {
 
 // 時間文字列をフォーマットする関数（JST対応）
 export function formatTime(timeString: string): string {
-  // データベースに保存されたJST時刻をそのまま表示
+  // データベースに保存されたUTC時刻をJSTで表示
   const date = new Date(timeString)
   return date.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false
+    hour12: false,
+    timeZone: 'Asia/Tokyo'
   })
 }
