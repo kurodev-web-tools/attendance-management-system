@@ -23,9 +23,28 @@ export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
     break_end_time: record.break_end_time || null,
   }
 
+  // 既存のレコードを取得
+  const { data: existingData } = await supabase
+    .from('attendance_records')
+    .select('*')
+    .eq('user_id', record.user_id)
+    .eq('date', record.date)
+    .single()
+
+  // 既存データとマージ（undefinedの場合は既存値を保持）
+  const mergedRecord = {
+    ...existingData,
+    ...cleanRecord,
+    // 時刻フィールドは明示的に指定された場合のみ更新
+    check_in_time: cleanRecord.check_in_time !== undefined ? cleanRecord.check_in_time : existingData?.check_in_time || null,
+    check_out_time: cleanRecord.check_out_time !== undefined ? cleanRecord.check_out_time : existingData?.check_out_time || null,
+    break_start_time: cleanRecord.break_start_time !== undefined ? cleanRecord.break_start_time : existingData?.break_start_time || null,
+    break_end_time: cleanRecord.break_end_time !== undefined ? cleanRecord.break_end_time : existingData?.break_end_time || null,
+  }
+
   const { data, error } = await supabase
     .from('attendance_records')
-    .upsert(cleanRecord, { 
+    .upsert(mergedRecord, { 
       onConflict: 'user_id,date', // 重複時の処理を指定
       ignoreDuplicates: false // 重複を無視せず更新
     })

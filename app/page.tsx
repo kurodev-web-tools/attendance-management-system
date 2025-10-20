@@ -44,23 +44,31 @@ export default function Home() {
       // ユーザーIDとしてemailを使用（一時的な解決策）
       const userId = session.user.email
       
-      // 勤怠記録を取得
-      try {
-        const attendanceData = await getAttendanceRecord(userId, today)
-        if (attendanceData) {
-          // 退勤時刻がある場合は出勤状態をfalseに設定
-          const hasCheckedOut = !!attendanceData.check_out_time
-          setIsCheckedIn(!hasCheckedOut && !!attendanceData.check_in_time)
-          setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
-          setCheckInTime(attendanceData.check_in_time || undefined)
-          setCheckOutTime(attendanceData.check_out_time || undefined)
-          setBreakStartTime(attendanceData.break_start_time || undefined)
-          setBreakEndTime(attendanceData.break_end_time || undefined)
-        }
-      } catch (attendanceError) {
-        console.error('勤怠記録の読み込みエラー:', attendanceError)
-        // エラーが発生してもアプリを継続（ユーザーには表示しない）
-      }
+          // 勤怠記録を取得
+          try {
+            const attendanceData = await getAttendanceRecord(userId, today)
+            if (attendanceData) {
+              // 最新の出勤記録のみを使用（退勤後に再度出勤した場合）
+              const latestCheckIn = attendanceData.check_in_time
+              const latestCheckOut = attendanceData.check_out_time
+              
+              // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
+              const isCurrentlyWorking = !!latestCheckIn && !latestCheckOut
+              setIsCheckedIn(isCurrentlyWorking)
+              
+              // 休憩状態の判定
+              setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
+              
+              // 時刻データを設定
+              setCheckInTime(latestCheckIn || undefined)
+              setCheckOutTime(latestCheckOut || undefined)
+              setBreakStartTime(attendanceData.break_start_time || undefined)
+              setBreakEndTime(attendanceData.break_end_time || undefined)
+            }
+          } catch (attendanceError) {
+            console.error('勤怠記録の読み込みエラー:', attendanceError)
+            // エラーが発生してもアプリを継続（ユーザーには表示しない）
+          }
 
       // 忙しさレベルを取得
       try {
@@ -168,6 +176,11 @@ export default function Home() {
     } finally {
       setLoading(false)
     }
+
+    // データを再読み込みして最新状態を反映
+    setTimeout(() => {
+      loadTodayData()
+    }, 500)
   }
 
   // 退勤処理
@@ -195,11 +208,10 @@ export default function Home() {
       setLoading(false)
     }
 
-    // 退勤後、再度出勤可能にするため、出勤状態のみリセット
+    // データを再読み込みして最新状態を反映
     setTimeout(() => {
-      setIsCheckedIn(false)
-      // 時刻データは保持（データベースから読み込まれるため）
-    }, 2000) // 2秒後に出勤状態のみリセット
+      loadTodayData()
+    }, 500)
   }
 
   // 新しい日へのリセット処理
