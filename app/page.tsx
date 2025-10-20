@@ -143,13 +143,13 @@ export default function Home() {
 
     setLoading(true)
     // JSTで現在時刻を取得（正しい方法）
-    const jstOffset = 9 * 60 // JSTはUTC+9時間 = 540分
     const utcNow = new Date()
-    const jstNow = new Date(utcNow.getTime() + (jstOffset * 60 * 1000))
+    const jstOffset = 9 * 60 * 60 * 1000 // JSTはUTC+9時間（ミリ秒）
+    const jstNow = new Date(utcNow.getTime() + jstOffset)
     const now = jstNow.toISOString()
     console.log('UTC時刻:', utcNow.toISOString())
     console.log('JST時刻:', now)
-    console.log('現在時刻（JST）:', jstNow.toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+    console.log('現在時刻（JST）:', jstNow.toLocaleTimeString('ja-JP', {hour12: false}))
     
     // 状態を完全にリセット
     setCheckOutTime(undefined)
@@ -198,13 +198,13 @@ export default function Home() {
 
     setLoading(true)
     // JSTで現在時刻を取得（正しい方法）
-    const jstOffset = 9 * 60 // JSTはUTC+9時間 = 540分
     const utcNow = new Date()
-    const jstNow = new Date(utcNow.getTime() + (jstOffset * 60 * 1000))
+    const jstOffset = 9 * 60 * 60 * 1000 // JSTはUTC+9時間（ミリ秒）
+    const jstNow = new Date(utcNow.getTime() + jstOffset)
     const now = jstNow.toISOString()
     console.log('UTC時刻:', utcNow.toISOString())
     console.log('JST時刻:', now)
-    console.log('現在時刻（JST）:', jstNow.toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+    console.log('現在時刻（JST）:', jstNow.toLocaleTimeString('ja-JP', {hour12: false}))
     
     setIsCheckedIn(false)
     setIsOnBreak(false)
@@ -272,13 +272,13 @@ export default function Home() {
     if (!session?.user?.email) return
 
     // JSTで現在時刻を取得（正しい方法）
-    const jstOffset = 9 * 60 // JSTはUTC+9時間 = 540分
     const utcNow = new Date()
-    const jstNow = new Date(utcNow.getTime() + (jstOffset * 60 * 1000))
+    const jstOffset = 9 * 60 * 60 * 1000 // JSTはUTC+9時間（ミリ秒）
+    const jstNow = new Date(utcNow.getTime() + jstOffset)
     const now = jstNow.toISOString()
     console.log('UTC時刻:', utcNow.toISOString())
     console.log('JST時刻:', now)
-    console.log('現在時刻（JST）:', jstNow.toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+    console.log('現在時刻（JST）:', jstNow.toLocaleTimeString('ja-JP', {hour12: false}))
     
     setIsOnBreak(true)
 
@@ -303,13 +303,13 @@ export default function Home() {
     if (!session?.user?.email) return
 
     // JSTで現在時刻を取得（正しい方法）
-    const jstOffset = 9 * 60 // JSTはUTC+9時間 = 540分
     const utcNow = new Date()
-    const jstNow = new Date(utcNow.getTime() + (jstOffset * 60 * 1000))
+    const jstOffset = 9 * 60 * 60 * 1000 // JSTはUTC+9時間（ミリ秒）
+    const jstNow = new Date(utcNow.getTime() + jstOffset)
     const now = jstNow.toISOString()
     console.log('UTC時刻:', utcNow.toISOString())
     console.log('JST時刻:', now)
-    console.log('現在時刻（JST）:', jstNow.toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+    console.log('現在時刻（JST）:', jstNow.toLocaleTimeString('ja-JP', {hour12: false}))
     
     setIsOnBreak(false)
 
