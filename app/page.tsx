@@ -55,30 +55,35 @@ export default function Home() {
           if (allRecords && allRecords.length > 0) {
             let totalMinutes = 0
             
-            allRecords.forEach(record => {
+            // 各記録を時系列でソート
+            const sortedRecords = allRecords.sort((a, b) => {
+              const timeA = a.check_in_time ? new Date(a.check_in_time).getTime() : 0
+              const timeB = b.check_in_time ? new Date(b.check_in_time).getTime() : 0
+              return timeA - timeB
+            })
+            
+            sortedRecords.forEach((record, index) => {
               if (record.check_in_time && record.check_out_time) {
                 // 出退勤両方がある場合のみ計算
                 const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
                 totalMinutes += minutes
-                console.log('累積勤務時間計算:', {
+                console.log(`累積勤務時間計算 [${index + 1}回目]:`, {
                   checkInTime: record.check_in_time,
                   checkOutTime: record.check_out_time,
                   minutes,
                   totalMinutes
                 })
+              } else if (record.check_in_time && !record.check_out_time && index === sortedRecords.length - 1) {
+                // 最後の記録で出勤のみの場合は現在時刻まで計算
+                const currentMinutes = calculateMinutesBetween(record.check_in_time, new Date().toISOString())
+                totalMinutes += currentMinutes
+                console.log('現在勤務中の追加計算:', {
+                  checkInTime: record.check_in_time,
+                  currentMinutes,
+                  totalMinutes
+                })
               }
             })
-            
-            // 現在勤務中の場合は追加計算
-            if (isCheckedIn && checkInTime && !checkOutTime) {
-              const currentMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
-              totalMinutes += currentMinutes
-              console.log('現在勤務中の追加計算:', {
-                checkInTime,
-                currentMinutes,
-                totalMinutes
-              })
-            }
             
             setTotalWorkMinutes(totalMinutes)
             console.log('最終累積勤務時間:', totalMinutes)
@@ -251,12 +256,12 @@ export default function Home() {
     setIsCheckedIn(true)
 
     try {
-      // 再出勤記録を保存（新しい出勤記録として保存）
+      // 再出勤記録を保存（前回の退勤記録を保持しつつ新しい出勤記録を追加）
       console.log('保存する勤怠データ:', {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
-        check_out_time: null, // 再出勤時は退勤時刻をnullに
+        check_out_time: checkOutTime || null, // 前回の退勤時刻を保持
         break_start_time: null,
         break_end_time: null,
       })
@@ -265,7 +270,7 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
-        check_out_time: null, // 再出勤時は退勤時刻をnullに
+        check_out_time: checkOutTime || null, // 前回の退勤時刻を保持
         break_start_time: null,
         break_end_time: null,
       })
