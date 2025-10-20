@@ -14,7 +14,7 @@ import { supabase, AttendanceRecord, BusyLevel } from './supabase'
 
 // 勤怠記録の保存
 export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
-  // undefinedをnullに変換、nullはそのまま保持
+  // 時刻フィールドをJSTで正しく保存
   const cleanRecord = {
     ...record,
     check_in_time: record.check_in_time === undefined ? null : record.check_in_time,
@@ -22,6 +22,8 @@ export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
     break_start_time: record.break_start_time === undefined ? null : record.break_start_time,
     break_end_time: record.break_end_time === undefined ? null : record.break_end_time,
   }
+  
+  console.log('保存する勤怠データ:', cleanRecord)
 
   const { data, error } = await supabase
     .from('attendance_records')
@@ -53,7 +55,10 @@ export async function getAttendanceRecord(userId: string, date: string) {
   }
 
   // データが存在する場合は最初のレコードを返す
-  return data && data.length > 0 ? data[0] : null
+  const record = data && data.length > 0 ? data[0] : null
+  console.log('取得した勤怠データ:', record)
+  
+  return record
 }
 
 // 忙しさレベルの保存

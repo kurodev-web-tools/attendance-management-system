@@ -142,10 +142,9 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // JSTで現在時刻を取得（正しいISO形式）
-    const jstNow = new Date()
-    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
-    const now = jstTime.toISOString()
+    // JSTで現在時刻を取得（シンプルな方法）
+    const now = new Date().toISOString()
+    console.log('出勤時刻:', now)
     
     // 状態を完全にリセット
     setCheckOutTime(undefined)
@@ -193,10 +192,9 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // JSTで現在時刻を取得（正しいISO形式）
-    const jstNow = new Date()
-    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
-    const now = jstTime.toISOString()
+    // JSTで現在時刻を取得（シンプルな方法）
+    const now = new Date().toISOString()
+    console.log('出勤時刻:', now)
     
     setIsCheckedIn(false)
     setIsOnBreak(false)
@@ -263,10 +261,9 @@ export default function Home() {
   const handleBreakStart = async () => {
     if (!session?.user?.email) return
 
-    // JSTで現在時刻を取得（正しいISO形式）
-    const jstNow = new Date()
-    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
-    const now = jstTime.toISOString()
+    // JSTで現在時刻を取得（シンプルな方法）
+    const now = new Date().toISOString()
+    console.log('出勤時刻:', now)
     
     setIsOnBreak(true)
 
@@ -290,10 +287,9 @@ export default function Home() {
   const handleBreakEnd = async () => {
     if (!session?.user?.email) return
 
-    // JSTで現在時刻を取得（正しいISO形式）
-    const jstNow = new Date()
-    const jstTime = new Date(jstNow.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}))
-    const now = jstTime.toISOString()
+    // JSTで現在時刻を取得（シンプルな方法）
+    const now = new Date().toISOString()
+    console.log('出勤時刻:', now)
     
     setIsOnBreak(false)
 
