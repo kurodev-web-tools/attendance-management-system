@@ -1,7 +1,6 @@
 import { NextAuthOptions } from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { SupabaseAdapter } from '@auth/supabase-adapter'
-import { supabase } from './supabase'
 
 export const authOptions: NextAuthOptions = {
   adapter: SupabaseAdapter({

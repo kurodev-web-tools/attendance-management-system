@@ -46,6 +46,6 @@ export interface MonthlyReport {
   total_work_hours: number
   total_work_days: number
   average_busy_level: number
-  report_data: any
+  report_data: Record<string, unknown>
   created_at: string
 }

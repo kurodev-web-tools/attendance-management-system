@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
