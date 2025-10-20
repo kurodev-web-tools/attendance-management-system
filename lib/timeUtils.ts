@@ -96,7 +96,23 @@ export function calculateTodayWorkTime(
     if (start < end) {
       totalWorkMinutes = calculateMinutesBetween(checkInTime, endTime)
     } else {
-      totalWorkMinutes = 0
+      // 出勤時刻が退勤時刻より後の場合（再出勤時など）
+      // 現在の出勤時刻から現在時刻までの勤務時間を計算
+      if (!checkOutTime) {
+        // 退勤していない場合は現在時刻まで
+        totalWorkMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
+      } else {
+        // 退勤済みの場合は0分（前回の勤務時間は既に計算済み）
+        totalWorkMinutes = 0
+      }
+      
+      console.log('再出勤時の勤務時間計算:', {
+        checkInTime: start.toISOString(),
+        endTime: end.toISOString(),
+        checkOutTime: checkOutTime || 'なし',
+        totalWorkMinutes,
+        isCurrentlyWorking: !checkOutTime
+      })
     }
     
     console.log('勤務時間計算:', {

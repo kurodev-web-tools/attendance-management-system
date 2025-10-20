@@ -253,6 +253,8 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         check_out_time: now,
+        // 出勤時刻も保持する
+        check_in_time: checkInTime || null,
       })
       
       // 保存成功後に時刻を設定
