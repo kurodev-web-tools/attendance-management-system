@@ -1,10 +1,24 @@
 import { supabase, AttendanceRecord, BusyLevel } from './supabase'
 
+// メールアドレスからUUIDを生成する関数（クライアントサイド対応）
+// async function generateUserIdFromEmail(email: string): Promise<string> {
+//   const encoder = new TextEncoder()
+//   const data = encoder.encode(email)
+//   const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+//   const hashArray = Array.from(new Uint8Array(hashBuffer))
+//   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  
+//   // UUID形式に変換 (8-4-4-4-12)
+//   return `${hashHex.substring(0, 8)}-${hashHex.substring(8, 12)}-${hashHex.substring(12, 16)}-${hashHex.substring(16, 20)}-${hashHex.substring(20, 32)}`
+// }
+
 // 勤怠記録の保存
 export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
   const { data, error } = await supabase
     .from('attendance_records')
-    .upsert(record)
+    .upsert(record, { 
+      onConflict: 'user_id,date' // 重複時の処理を指定
+    })
     .select()
 
   if (error) {
@@ -36,7 +50,9 @@ export async function getAttendanceRecord(userId: string, date: string) {
 export async function saveBusyLevel(busyLevel: Partial<BusyLevel>) {
   const { data, error } = await supabase
     .from('busy_levels')
-    .upsert(busyLevel)
+    .upsert(busyLevel, { 
+      onConflict: 'user_id,date' // 重複時の処理を指定
+    })
     .select()
 
   if (error) {
