@@ -72,13 +72,20 @@ export default function Home() {
               setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
               
               // 時刻データを設定（確実にUTC文字列として設定）
-              setCheckInTime(latestCheckIn || undefined)
-              setCheckOutTime(latestCheckOut || undefined)
-              setBreakStartTime(attendanceData.break_start_time || undefined)
-              setBreakEndTime(attendanceData.break_end_time || undefined)
+              // Supabaseから取得した時刻文字列にZが含まれていない場合があるため正規化
+              const normalizeTimeString = (timeStr: string | null) => {
+                if (!timeStr) return undefined
+                // 末尾にZがなければ追加してUTC時刻として認識させる
+                return timeStr.endsWith('Z') ? timeStr : timeStr + 'Z'
+              }
               
-              console.log('設定された出勤時刻:', latestCheckIn)
-              console.log('設定された退勤時刻:', latestCheckOut)
+              setCheckInTime(normalizeTimeString(latestCheckIn))
+              setCheckOutTime(normalizeTimeString(latestCheckOut))
+              setBreakStartTime(normalizeTimeString(attendanceData.break_start_time))
+              setBreakEndTime(normalizeTimeString(attendanceData.break_end_time))
+              
+              console.log('設定された出勤時刻（正規化後）:', normalizeTimeString(latestCheckIn))
+              console.log('設定された退勤時刻（正規化後）:', normalizeTimeString(latestCheckOut))
             }
           } catch (attendanceError) {
             console.error('勤怠記録の読み込みエラー:', attendanceError)

@@ -36,8 +36,11 @@ export function formatMinutesToTime(minutes: number): string {
 // 時刻を「HH:MM」形式にフォーマットする関数
 export function formatTime(isoString: string): string {
   try {
+    // 時刻文字列を正規化（末尾にZがなければ追加）
+    const normalizedTimeString = isoString.endsWith('Z') ? isoString : isoString + 'Z'
+    
     // データベースに保存されたUTC時刻をJSTで表示
-    const date = new Date(isoString)
+    const date = new Date(normalizedTimeString)
     
     // 無効な日付の場合のチェック
     if (isNaN(date.getTime())) {
@@ -53,7 +56,7 @@ export function formatTime(isoString: string): string {
     })
     
     // デバッグログ
-    console.log(`formatTime - 入力UTC: ${isoString} → 出力JST: ${jstTime}`)
+    console.log(`formatTime - 入力: ${isoString} → 正規化: ${normalizedTimeString} → 出力JST: ${jstTime}`)
     
     return jstTime
   } catch (error) {
