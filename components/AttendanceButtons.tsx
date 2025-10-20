@@ -65,7 +65,7 @@ export function AttendanceButtons({
         </div>
 
         {/* 出勤・退勤時刻表示 */}
-        {(isCheckedIn || checkOutTime) && (
+        {(checkInTime || checkOutTime) && (
           <div className="space-y-2 p-3 bg-green-50 rounded-lg">
             <div className="text-sm text-green-700">
               出勤時刻: {checkInTime ? formatTime(checkInTime) : '--:--'}

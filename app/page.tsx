@@ -187,16 +187,16 @@ export default function Home() {
     // 出勤状態を設定（時刻は保存後に設定）
     setIsCheckedIn(true)
 
-        try {
-          // 出勤記録を保存（退勤時刻は保持、休憩時刻のみリセット）
-          await saveAttendanceRecord({
-            user_id: session.user.email,
-            date: today,
-            check_in_time: now,
-            check_out_time: checkOutTime || null, // 退勤時刻を保持
-            break_start_time: null,
-            break_end_time: null,
-          })
+    try {
+      // 出勤記録を保存（退勤時刻は保持、休憩時刻のみリセット）
+      await saveAttendanceRecord({
+        user_id: session.user.email,
+        date: today,
+        check_in_time: now,
+        check_out_time: checkOutTime || null, // 退勤時刻を保持
+        break_start_time: null,
+        break_end_time: null,
+      })
       
       // 忙しさレベルもリセット
       await saveBusyLevel({
