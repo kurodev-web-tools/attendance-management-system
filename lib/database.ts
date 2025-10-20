@@ -25,12 +25,10 @@ export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
   
   console.log('保存する勤怠データ:', cleanRecord)
 
+  // 複数回の出退勤記録を保持するため、常に新しいレコードを挿入
   const { data, error } = await supabase
     .from('attendance_records')
-    .upsert(cleanRecord, { 
-      onConflict: 'user_id,date', // 重複時の処理を指定
-      ignoreDuplicates: false // 重複を無視せず更新
-    })
+    .insert(cleanRecord)
     .select()
 
   if (error) {
@@ -41,20 +39,21 @@ export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
   return data
 }
 
-// 勤怠記録の取得
+// 勤怠記録の取得（最新の記録を取得）
 export async function getAttendanceRecord(userId: string, date: string) {
   const { data, error } = await supabase
     .from('attendance_records')
     .select('*')
     .eq('user_id', userId)
     .eq('date', date)
+    .order('created_at', { ascending: false }) // 最新の記録を取得
 
   if (error) {
     console.error('勤怠記録の取得エラー:', error)
     throw error
   }
 
-  // データが存在する場合は最初のレコードを返す
+  // データが存在する場合は最新のレコードを返す
   const record = data && data.length > 0 ? data[0] : null
   console.log('取得した勤怠データ:', record)
   
