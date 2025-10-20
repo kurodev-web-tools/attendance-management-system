@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut } from 'lucide-react'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
-import { calculateTodayWorkTime } from '@/lib/timeUtils'
+import { calculateTodayWorkTime, getCurrentTimeFromServer } from '@/lib/timeUtils'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -23,9 +23,9 @@ export default function Home() {
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // 今日の日付を取得（JST基準）
-  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Tokyo' })
-  console.log('今日の日付（JST）:', today)
+  // 今日の日付を取得（UTC基準）
+  const today = new Date().toISOString().split('T')[0]
+  console.log('今日の日付（UTC）:', today)
 
   // 今日の勤務時間を計算（currentTimeを依存関係に追加してリアルタイム更新）
   const workTimeCalculation = calculateTodayWorkTime(
@@ -143,10 +143,10 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // 現在時刻を取得（UTCで保存、JSTで表示）
-    const now = new Date().toISOString()
-    console.log('保存する時刻（UTC）:', now)
-    console.log('現在時刻（JST）:', new Date().toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
+    // サーバーから正確な時刻を取得
+    const now = await getCurrentTimeFromServer()
+    console.log('保存する時刻（サーバー時刻）:', now)
+    console.log('表示時刻（JST）:', new Date(now).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
     
     // 状態を完全にリセット
     setCheckOutTime(undefined)
@@ -194,8 +194,8 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // 現在時刻を取得（UTCで保存、JSTで表示）
-    const now = new Date().toISOString()
+    // サーバーから正確な時刻を取得
+    const now = await getCurrentTimeFromServer()
     
     setIsCheckedIn(false)
     setIsOnBreak(false)
@@ -262,8 +262,8 @@ export default function Home() {
   const handleBreakStart = async () => {
     if (!session?.user?.email) return
 
-    // 現在時刻を取得（UTCで保存、JSTで表示）
-    const now = new Date().toISOString()
+    // サーバーから正確な時刻を取得
+    const now = await getCurrentTimeFromServer()
     
     setIsOnBreak(true)
 
@@ -287,8 +287,8 @@ export default function Home() {
   const handleBreakEnd = async () => {
     if (!session?.user?.email) return
 
-    // 現在時刻を取得（UTCで保存、JSTで表示）
-    const now = new Date().toISOString()
+    // サーバーから正確な時刻を取得
+    const now = await getCurrentTimeFromServer()
     
     setIsOnBreak(false)
 

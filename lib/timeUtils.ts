@@ -1,33 +1,56 @@
-// 時間計算のユーティリティ関数
-
-// 時間を分単位で計算する関数
-export function calculateMinutesBetween(startTime: string, endTime: string): number {
-  const start = new Date(startTime)
-  const end = new Date(endTime)
-  const diffMs = end.getTime() - start.getTime()
-  return Math.floor(diffMs / (1000 * 60)) // ミリ秒を分に変換
+// サーバーから正確な時刻を取得する関数
+export async function getCurrentTimeFromServer(): Promise<string> {
+  try {
+    const response = await fetch('/api/current-time', {
+      cache: 'no-store', // 常に最新の時刻を取得
+    })
+    
+    if (!response.ok) {
+      throw new Error('サーバー時刻の取得に失敗しました')
+    }
+    
+    const data = await response.json()
+    return data.timestamp
+  } catch (error) {
+    console.error('サーバー時刻取得エラー:', error)
+    // フォールバック：デバイス時刻を使用
+    return new Date().toISOString()
+  }
 }
 
-// 分を時間:分形式に変換する関数
+// 2つのISO文字列間の分数を計算するヘルパー関数
+function calculateMinutesBetween(startIso: string, endIso: string): number {
+  const start = new Date(startIso)
+  const end = new Date(endIso)
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / (1000 * 60)))
+}
+
+// 分数を「X時間Y分」形式にフォーマットする関数
 export function formatMinutesToTime(minutes: number): string {
+  if (minutes < 0) return "0時間0分" // 負の時間は表示しない
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
   return `${hours}時間${mins}分`
 }
 
-// 分をHH:MM形式に変換する関数
-export function formatMinutesToHHMM(minutes: number): string {
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+// 時刻を「HH:MM」形式にフォーマットする関数
+export function formatTime(isoString: string): string {
+  // データベースに保存されたUTC時刻をJSTで表示
+  const date = new Date(isoString)
+  return date.toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Tokyo'
+  })
 }
 
 // 今日の勤務時間を計算する関数
 export function calculateTodayWorkTime(
-  checkInTime?: string,
-  checkOutTime?: string,
-  breakStartTime?: string,
-  breakEndTime?: string
+  checkInTime?: string | null, // Allow null
+  checkOutTime?: string | null, // Allow null
+  breakStartTime?: string | null, // Allow null
+  breakEndTime?: string | null
 ): {
   totalWorkMinutes: number
   breakMinutes: number
@@ -43,20 +66,16 @@ export function calculateTodayWorkTime(
 
   // 出勤時刻がある場合
   if (checkInTime) {
-    if (checkOutTime) {
-      // 退勤時刻がある場合（勤務終了）
-      const start = new Date(checkInTime)
-      const end = new Date(checkOutTime)
-      
-      if (start < end) {
-        totalWorkMinutes = calculateMinutesBetween(checkInTime, checkOutTime)
-      } else {
-        totalWorkMinutes = 0
-      }
+    const endTime = checkOutTime || new Date().toISOString()
+    
+    // 出勤時刻が退勤時刻より後の場合は0分とする
+    const start = new Date(checkInTime)
+    const end = new Date(endTime)
+    
+    if (start < end) {
+      totalWorkMinutes = calculateMinutesBetween(checkInTime, endTime)
     } else {
-      // 退勤時刻がない場合（勤務中）
-      const now = new Date().toISOString()
-      totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
+      totalWorkMinutes = 0
     }
   }
 
@@ -80,21 +99,4 @@ export function calculateTodayWorkTime(
     formattedBreakTime: formatMinutesToTime(breakMinutes),
     formattedNetWorkTime: formatMinutesToTime(netWorkMinutes)
   }
-}
-
-// 現在時刻を取得する関数
-export function getCurrentTime(): string {
-  return new Date().toISOString()
-}
-
-// 時間文字列をフォーマットする関数（JST対応）
-export function formatTime(timeString: string): string {
-  // データベースに保存されたUTC時刻をJSTで表示
-  const date = new Date(timeString)
-  return date.toLocaleTimeString('ja-JP', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Tokyo'
-  })
 }
