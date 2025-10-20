@@ -22,14 +22,14 @@ export async function getAttendanceRecord(userId: string, date: string) {
     .select('*')
     .eq('user_id', userId)
     .eq('date', date)
-    .single()
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('勤怠記録の取得エラー:', error)
     throw error
   }
 
-  return data
+  // データが存在する場合は最初のレコードを返す
+  return data && data.length > 0 ? data[0] : null
 }
 
 // 忙しさレベルの保存
@@ -54,14 +54,14 @@ export async function getBusyLevel(userId: string, date: string) {
     .select('*')
     .eq('user_id', userId)
     .eq('date', date)
-    .single()
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
     console.error('忙しさレベルの取得エラー:', error)
     throw error
   }
 
-  return data
+  // データが存在する場合は最初のレコードを返す
+  return data && data.length > 0 ? data[0] : null
 }
 
 // ユーザーの勤怠履歴を取得

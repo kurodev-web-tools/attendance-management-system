@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSession, signOut } from 'next-auth/react'
 import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
@@ -24,15 +24,8 @@ export default function Home() {
   // 今日の日付を取得
   const today = new Date().toISOString().split('T')[0]
 
-  // コンポーネントマウント時にデータを読み込み
-  useEffect(() => {
-    if (session?.user) {
-      loadTodayData()
-    }
-  }, [session?.user, today])
-
   // 今日のデータを読み込み
-  const loadTodayData = async () => {
+  const loadTodayData = useCallback(async () => {
     if (!session?.user?.email) return
 
     try {
@@ -42,28 +35,45 @@ export default function Home() {
       const userId = session.user.email
       
       // 勤怠記録を取得
-      const attendanceData = await getAttendanceRecord(userId, today)
-      if (attendanceData) {
-        setIsCheckedIn(!!attendanceData.check_in_time)
-        setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
-        setCheckInTime(attendanceData.check_in_time)
-        setCheckOutTime(attendanceData.check_out_time)
-        setBreakStartTime(attendanceData.break_start_time)
-        setBreakEndTime(attendanceData.break_end_time)
+      try {
+        const attendanceData = await getAttendanceRecord(userId, today)
+        if (attendanceData) {
+          setIsCheckedIn(!!attendanceData.check_in_time)
+          setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
+          setCheckInTime(attendanceData.check_in_time)
+          setCheckOutTime(attendanceData.check_out_time)
+          setBreakStartTime(attendanceData.break_start_time)
+          setBreakEndTime(attendanceData.break_end_time)
+        }
+      } catch (attendanceError) {
+        console.error('勤怠記録の読み込みエラー:', attendanceError)
+        // エラーが発生してもアプリを継続
       }
 
       // 忙しさレベルを取得
-      const busyData = await getBusyLevel(userId, today)
-      if (busyData) {
-        setBusyLevel(busyData.level)
-        setBusyComment(busyData.comment || '')
+      try {
+        const busyData = await getBusyLevel(userId, today)
+        if (busyData) {
+          setBusyLevel(busyData.level)
+          setBusyComment(busyData.comment || '')
+        }
+      } catch (busyError) {
+        console.error('忙しさレベルの読み込みエラー:', busyError)
+        // エラーが発生してもアプリを継続
       }
     } catch (error) {
       console.error('データの読み込みエラー:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.email, today])
+
+  // コンポーネントマウント時にデータを読み込み
+  useEffect(() => {
+    if (session?.user) {
+      loadTodayData()
+    }
+  }, [session?.user, today, loadTodayData])
 
   // ローディング中または認証されていない場合はログインページにリダイレクト
   if (status === 'loading' || loading) {
