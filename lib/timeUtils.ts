@@ -54,8 +54,11 @@ export function calculateTodayWorkTime(
         totalWorkMinutes = 0
       }
     } else {
-      // 退勤時刻がない場合（勤務中）
-      const now = new Date().toISOString()
+      // 退勤時刻がない場合（勤務中）- JSTで現在時刻を取得
+      const jstOffset = 9 * 60 // JSTはUTC+9時間 = 540分
+      const utcNow = new Date()
+      const jstNow = new Date(utcNow.getTime() + (jstOffset * 60 * 1000))
+      const now = jstNow.toISOString()
       totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
     }
   }
@@ -64,8 +67,11 @@ export function calculateTodayWorkTime(
   if (breakStartTime && breakEndTime) {
     breakMinutes = calculateMinutesBetween(breakStartTime, breakEndTime)
   } else if (breakStartTime && !breakEndTime) {
-    // 休憩中の場合、現在時刻まで
-    const now = new Date().toISOString()
+    // 休憩中の場合、現在時刻まで - JSTで現在時刻を取得
+    const jstOffset = 9 * 60 // JSTはUTC+9時間 = 540分
+    const utcNow = new Date()
+    const jstNow = new Date(utcNow.getTime() + (jstOffset * 60 * 1000))
+    const now = jstNow.toISOString()
     breakMinutes = calculateMinutesBetween(breakStartTime, now)
   }
 
