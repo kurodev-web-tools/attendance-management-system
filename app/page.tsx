@@ -55,8 +55,14 @@ export default function Home() {
               const latestCheckIn = attendanceData.check_in_time
               const latestCheckOut = attendanceData.check_out_time
               
-              console.log('出勤時刻:', latestCheckIn)
-              console.log('退勤時刻:', latestCheckOut)
+              console.log('出勤時刻（UTC）:', latestCheckIn)
+              console.log('退勤時刻（UTC）:', latestCheckOut)
+              if (latestCheckIn) {
+                console.log('出勤時刻（JST表示）:', new Date(latestCheckIn).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
+              }
+              if (latestCheckOut) {
+                console.log('退勤時刻（JST表示）:', new Date(latestCheckOut).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
+              }
               
               // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
               const isCurrentlyWorking = !!latestCheckIn && !latestCheckOut

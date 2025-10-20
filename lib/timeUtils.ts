@@ -37,12 +37,17 @@ export function formatMinutesToTime(minutes: number): string {
 export function formatTime(isoString: string): string {
   // データベースに保存されたUTC時刻をJSTで表示
   const date = new Date(isoString)
-  return date.toLocaleTimeString('ja-JP', {
+  const jstTime = date.toLocaleTimeString('ja-JP', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
     timeZone: 'Asia/Tokyo'
   })
+  
+  // デバッグログ
+  console.log(`formatTime - 入力UTC: ${isoString} → 出力JST: ${jstTime}`)
+  
+  return jstTime
 }
 
 // 今日の勤務時間を計算する関数

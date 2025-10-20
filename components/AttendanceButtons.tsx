@@ -75,6 +75,12 @@ export function AttendanceButtons({
                 退勤時刻: {formatTime(checkOutTime)}
               </div>
             )}
+            {/* デバッグ情報 */}
+            {checkInTime && (
+              <div className="text-xs text-gray-500">
+                デバッグ - UTC: {checkInTime} | JST: {formatTime(checkInTime)}
+              </div>
+            )}
           </div>
         )}
 
