@@ -53,9 +53,11 @@ export async function getAttendanceRecord(userId: string, date: string) {
     throw error
   }
 
+  console.log('取得した勤怠データ（全レコード）:', data)
+  
   // データが存在する場合は最新のレコードを返す
   const record = data && data.length > 0 ? data[0] : null
-  console.log('取得した勤怠データ:', record)
+  console.log('取得した勤怠データ（最新）:', record)
   
   return record
 }

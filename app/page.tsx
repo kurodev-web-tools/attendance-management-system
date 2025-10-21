@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react'
 import { toast } from 'sonner'
 import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
+import { HistoryView } from '@/components/HistoryView'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut } from 'lucide-react'
@@ -24,6 +25,7 @@ export default function Home() {
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState<string>(new Date().toISOString())
+  const [showHistory, setShowHistory] = useState(false)
 
   // 今日の日付を取得（UTC基準）
   const today = new Date().toISOString().split('T')[0]
@@ -77,6 +79,18 @@ export default function Home() {
                   totalMinutes
                 })
                 currentCheckIn = null // ペア完了
+              } else if (record.check_in_time && currentCheckIn) {
+                // 既に出勤中に新しい出勤記録がある場合（再出勤）
+                // 前回の出勤から現在時刻まで計算
+                const minutes = calculateMinutesBetween(currentCheckIn, new Date().toISOString())
+                totalMinutes += minutes
+                console.log(`再出勤時の勤務時間計算 [${index + 1}]:`, {
+                  checkInTime: currentCheckIn,
+                  currentTime: new Date().toISOString(),
+                  minutes,
+                  totalMinutes
+                })
+                currentCheckIn = record.check_in_time // 新しい出勤記録を開始
               }
             })
             
@@ -253,6 +267,18 @@ export default function Home() {
     )
   }
 
+  // 履歴表示の場合は履歴コンポーネントを表示
+  if (showHistory) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <HistoryView 
+          userId={session.user?.email || ''} 
+          onBack={() => setShowHistory(false)} 
+        />
+      </div>
+    )
+  }
+
   // 出勤処理
   const handleCheckIn = async () => {
     if (!session?.user?.email) return
@@ -398,7 +424,7 @@ export default function Home() {
         console.error('忙しさレベルの削除エラー:', busyError)
       }
       
-      toast.success('新しい日を開始しました')
+      toast.success('勤務データをリセットしました')
     } catch (error) {
       console.error('リセット処理エラー:', error)
       toast.error('リセット処理に失敗しました')
@@ -613,7 +639,7 @@ export default function Home() {
 
         {/* アクションボタン */}
         <div className="flex justify-center gap-4">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowHistory(true)}>
             履歴確認
           </Button>
           <Button variant="outline">
@@ -628,7 +654,7 @@ export default function Home() {
               onClick={resetForNewDay}
               className="bg-blue-50 hover:bg-blue-100"
             >
-              新しい日を開始
+              リセット
             </Button>
           )}
         </div>
