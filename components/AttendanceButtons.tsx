@@ -79,7 +79,7 @@ export function AttendanceButtons({
         )}
 
         {/* 休憩ボタン */}
-        {isCheckedIn && !checkOutTime && (
+        {isCheckedIn && (
           <div className="grid grid-cols-2 gap-4">
             <Button
               onClick={onBreakStart}
@@ -120,7 +120,7 @@ export function AttendanceButtons({
         {(isCheckedIn || checkOutTime) && (
           <div className="p-3 bg-gray-50 rounded-lg">
             <div className="text-sm text-gray-700">
-              {checkOutTime ? '勤務終了 - 再度出勤可能' : isOnBreak ? '休憩中' : '勤務中'}
+              {isCheckedIn ? (isOnBreak ? '休憩中' : '勤務中') : '勤務終了 - 再度出勤可能'}
             </div>
           </div>
         )}

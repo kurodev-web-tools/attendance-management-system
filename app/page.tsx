@@ -56,7 +56,7 @@ export default function Home() {
           if (allRecords && allRecords.length > 0) {
             let totalMinutes = 0
             
-            // 出退勤のペアを作成して計算
+            // 出退勤のペアを作成して計算（時系列順で処理）
             let currentCheckIn: string | null = null
             
             allRecords.forEach((record, index) => {
@@ -78,16 +78,31 @@ export default function Home() {
               }
             })
             
-            // 最後に出勤のみの場合は現在時刻まで計算
-            if (currentCheckIn) {
+            // 最後に出勤のみの場合は現在時刻まで計算（ただし、現在勤務中の場合のみ）
+            if (currentCheckIn && isCheckedIn && !checkOutTime) {
               const currentMinutes = calculateMinutesBetween(currentCheckIn, new Date().toISOString())
               totalMinutes += currentMinutes
               console.log('現在勤務中の追加計算:', {
                 checkInTime: currentCheckIn,
                 currentMinutes,
-                totalMinutes
+                totalMinutes,
+                currentTime: new Date().toISOString(),
+                condition: {
+                  currentCheckIn: !!currentCheckIn,
+                  isCheckedIn,
+                  checkOutTime: !!checkOutTime
+                }
               })
             }
+            
+            // デバッグ情報を追加
+            console.log('累積勤務時間計算詳細:', {
+              allRecordsCount: allRecords.length,
+              currentCheckIn,
+              isCheckedIn,
+              checkOutTime,
+              totalMinutes
+            })
             
             setTotalWorkMinutes(totalMinutes)
             console.log('最終累積勤務時間:', totalMinutes)
@@ -99,7 +114,7 @@ export default function Home() {
     }
     
     calculateTotalWorkTime()
-  }, [session?.user?.email, today, isCheckedIn, checkInTime, checkOutTime])
+  }, [session?.user?.email, today, isCheckedIn, checkOutTime])
 
   // 今日のデータを読み込み
   const loadTodayData = useCallback(async () => {
@@ -246,6 +261,12 @@ export default function Home() {
     
     // 再出勤時の状態管理
     console.log('=== 再出勤処理開始 ===')
+    console.log('現在の状態:', {
+      isCheckedIn,
+      checkInTime,
+      checkOutTime,
+      totalWorkMinutes
+    })
     console.log('現在の退勤時刻:', checkOutTime)
     console.log('退勤時刻を保持:', checkOutTime ? 'はい' : 'いいえ')
     
@@ -347,24 +368,31 @@ export default function Home() {
     setBreakEndTime(undefined)
     setBusyLevel(50)
     setBusyComment('')
+    setTotalWorkMinutes(0) // 累積勤務時間もリセット
 
-    // データベースもクリア
+    // データベースのレコードを完全に削除
     try {
-      await saveAttendanceRecord({
-        user_id: session.user.email,
-        date: today,
-        check_in_time: null,
-        check_out_time: null,
-        break_start_time: null,
-        break_end_time: null,
-      })
+      // 今日の全ての勤怠記録を削除
+      const { error: attendanceError } = await supabase
+        .from('attendance_records')
+        .delete()
+        .eq('user_id', session.user.email)
+        .eq('date', today)
       
-      await saveBusyLevel({
-        user_id: session.user.email,
-        date: today,
-        level: 50,
-        comment: '',
-      })
+      if (attendanceError) {
+        console.error('勤怠記録の削除エラー:', attendanceError)
+      }
+      
+      // 忙しさレベルも削除
+      const { error: busyError } = await supabase
+        .from('busy_levels')
+        .delete()
+        .eq('user_id', session.user.email)
+        .eq('date', today)
+      
+      if (busyError) {
+        console.error('忙しさレベルの削除エラー:', busyError)
+      }
       
       toast.success('新しい日を開始しました')
     } catch (error) {

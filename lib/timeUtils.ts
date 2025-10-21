@@ -20,11 +20,31 @@ export async function getCurrentTimeFromServer(): Promise<string> {
 
 // 2つのISO文字列間の分数を計算するヘルパー関数
 export function calculateMinutesBetween(startIso: string, endIso: string): number {
-  const start = new Date(startIso)
-  const end = new Date(endIso)
+  // 時刻文字列を正規化（末尾にZがなければ追加）
+  const normalizedStartIso = startIso.endsWith('Z') ? startIso : startIso + 'Z'
+  const normalizedEndIso = endIso.endsWith('Z') ? endIso : endIso + 'Z'
+  
+  const start = new Date(normalizedStartIso)
+  const end = new Date(normalizedEndIso)
   const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
-  // 1分未満でも1分として計算（勤務時間の最小単位）
-  return Math.max(1, Math.ceil(diffSeconds / 60))
+  const minutes = Math.max(1, Math.ceil(diffSeconds / 60))
+  
+  // デバッグ情報を追加（540分問題の調査用）
+  if (minutes > 300) { // 5時間以上の場合のみログ出力
+    console.log('🚨 長時間計算検出:', {
+      originalStartIso: startIso,
+      originalEndIso: endIso,
+      normalizedStartIso,
+      normalizedEndIso,
+      startTime: start.toISOString(),
+      endTime: end.toISOString(),
+      diffSeconds,
+      minutes,
+      diffHours: minutes / 60
+    })
+  }
+  
+  return minutes
 }
 
 // 分数を「X時間Y分」形式にフォーマットする関数
