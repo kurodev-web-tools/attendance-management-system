@@ -92,7 +92,8 @@ export function calculateTodayWorkTime(
   checkInTime?: string | null, // Allow null
   checkOutTime?: string | null, // Allow null
   breakStartTime?: string | null, // Allow null
-  breakEndTime?: string | null
+  breakEndTime?: string | null,
+  currentTime?: string // 現在時刻（リアルタイム更新用）
 ): {
   totalWorkMinutes: number
   breakMinutes: number
@@ -106,6 +107,9 @@ export function calculateTodayWorkTime(
   let breakMinutes = 0
   let netWorkMinutes = 0
 
+  // 現在時刻を決定（効率的なリアルタイム更新のため）
+  const now = currentTime || new Date().toISOString()
+  
   // 出勤時刻がある場合
   if (checkInTime) {
     const start = new Date(checkInTime)
@@ -118,11 +122,11 @@ export function calculateTodayWorkTime(
       } else {
         // 出勤時刻が退勤時刻より後の場合（再出勤時など）
         // 現在時刻までの勤務時間を計算
-        totalWorkMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
+        totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
       }
     } else {
       // 勤務中の場合：出勤時刻から現在時刻までの勤務時間
-      totalWorkMinutes = calculateMinutesBetween(checkInTime, new Date().toISOString())
+      totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
     }
     
     console.log('勤務時間計算:', {
@@ -138,7 +142,6 @@ export function calculateTodayWorkTime(
     breakMinutes = calculateMinutesBetween(breakStartTime, breakEndTime)
   } else if (breakStartTime && !breakEndTime) {
     // 休憩中の場合、現在時刻まで
-    const now = new Date().toISOString()
     breakMinutes = calculateMinutesBetween(breakStartTime, now)
   }
 

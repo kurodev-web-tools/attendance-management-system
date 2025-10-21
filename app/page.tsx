@@ -23,6 +23,7 @@ export default function Home() {
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
+  const [currentTime, setCurrentTime] = useState<string>(new Date().toISOString())
 
   // 今日の日付を取得（UTC基準）
   const today = new Date().toISOString().split('T')[0]
@@ -33,7 +34,8 @@ export default function Home() {
     checkInTime,
     checkOutTime,
     breakStartTime,
-    breakEndTime
+    breakEndTime,
+    currentTime
   )
   
   // 累積勤務時間を計算（複数回の出退勤を考慮）
@@ -212,13 +214,15 @@ export default function Home() {
     }
   }, [session?.user, today, loadTodayData])
 
-  // 勤務時間をリアルタイム更新（1分ごと）
+  // 勤務時間をリアルタイム更新（10分ごと）
   useEffect(() => {
     if (isCheckedIn && !checkOutTime) {
       const timer = setInterval(() => {
-        // 強制的に再レンダリングをトリガー
-        setLoading(prev => !prev)
-      }, 60000) // 1分ごと
+        // 現在時刻を更新して勤務時間を再計算（ローディング画面は表示しない）
+        const now = new Date().toISOString()
+        // 状態更新により自動的に勤務時間が再計算される
+        setCurrentTime(now)
+      }, 600000) // 10分ごと
 
       return () => clearInterval(timer)
     }
