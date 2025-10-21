@@ -313,52 +313,81 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
               const sortedRecords = validRecords
                 .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
               
-              // 実際の出退勤ペアを構築
+              // 元の複雑なロジックに戻して、より慎重に処理
               const displayRecords: AttendanceRecord[] = []
               let currentCheckIn: AttendanceRecord | null = null
               
+              console.log('元のレコード詳細:', sortedRecords.map(r => ({
+                出勤: r.check_in_time,
+                退勤: r.check_out_time,
+                休憩開始: r.break_start_time,
+                休憩終了: r.break_end_time,
+                作成日時: r.created_at
+              })))
+              
               for (const record of sortedRecords) {
-                if (record.check_in_time && !currentCheckIn) {
-                  // 出勤記録を開始
+                console.log('処理中のレコード:', {
+                  出勤: record.check_in_time,
+                  退勤: record.check_out_time,
+                  休憩開始: record.break_start_time,
+                  休憩終了: record.break_end_time,
+                  作成日時: record.created_at
+                })
+                
+                // 出勤記録の処理
+                if (record.check_in_time && !record.break_start_time && !record.break_end_time && !currentCheckIn) {
+                  // 新しい出勤サイクルを開始（純粋な出勤記録のみ）
+                  console.log('新しい出勤サイクル開始')
                   currentCheckIn = record
                 } else if (record.check_out_time && currentCheckIn) {
-                  // 退勤記録でペアを完成
-                  // ただし、出勤時刻が退勤時刻より後の場合は再出勤として扱う
-                  if (new Date(currentCheckIn.check_in_time!) > new Date(record.check_out_time)) {
-                    // 再出勤の場合：前回の出勤記録を退勤なしで追加し、新しい出勤記録を開始
-                    displayRecords.push(currentCheckIn)
-                    currentCheckIn = record
-                  } else {
-                    // 通常の退勤の場合
-                    displayRecords.push({
-                      ...currentCheckIn,
-                      check_out_time: record.check_out_time
-                    })
-                    currentCheckIn = null
-                  }
-                } else if (record.check_in_time && currentCheckIn) {
+                  // 退勤記録でサイクルを完成
+                  console.log('退勤記録でサイクル完成')
+                  displayRecords.push({
+                    ...currentCheckIn,
+                    check_out_time: record.check_out_time
+                  })
+                  currentCheckIn = null
+                } else if (record.check_in_time && !record.break_start_time && !record.break_end_time && currentCheckIn && currentCheckIn.check_in_time !== record.check_in_time) {
                   // 既に出勤中に新しい出勤記録がある場合（再出勤）
-                  // 前回の出勤記録を退勤なしで追加
+                  console.log('再出勤検出')
                   displayRecords.push(currentCheckIn)
                   currentCheckIn = record
+                } else if (currentCheckIn && (record.break_start_time || record.break_end_time)) {
+                  // 休憩情報を現在のサイクルに統合
+                  console.log('休憩情報を統合')
+                  if (record.break_start_time && !currentCheckIn.break_start_time) {
+                    currentCheckIn.break_start_time = record.break_start_time
+                  }
+                  if (record.break_end_time && !currentCheckIn.break_end_time) {
+                    currentCheckIn.break_end_time = record.break_end_time
+                  }
                 }
               }
               
               // 最後に出勤のみの場合は現在勤務中として追加
               if (currentCheckIn) {
+                console.log('最後の出勤記録を追加')
                 displayRecords.push(currentCheckIn)
               }
               
-              // デバッグログを追加
+              // 詳細なデバッグログを追加
               console.log(`履歴表示 - 日付: ${date}`, {
                 総レコード数: records.length,
                 有効レコード数: validRecords.length,
                 表示レコード数: displayRecords.length,
-                レコード詳細: displayRecords.map(r => ({
+                元のレコード詳細: sortedRecords.map(r => ({
                   出勤: r.check_in_time,
                   退勤: r.check_out_time,
-                  作成日時: r.created_at,
-                  現在勤務中: !r.check_out_time
+                  休憩開始: r.break_start_time,
+                  休憩終了: r.break_end_time,
+                  作成日時: r.created_at
+                })),
+                表示レコード詳細: displayRecords.map(r => ({
+                  出勤: r.check_in_time,
+                  退勤: r.check_out_time,
+                  休憩開始: r.break_start_time,
+                  休憩終了: r.break_end_time,
+                  作成日時: r.created_at
                 }))
               })
               
@@ -460,6 +489,9 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                             const isLatestRecord = index === displayRecords.length - 1
                             const isCurrentWork = record.check_in_time && !record.check_out_time && isLatestRecord
                             
+                            // 休憩中の判定：休憩開始時刻があり、休憩終了時刻がない場合
+                            const isOnBreak = record.break_start_time && !record.break_end_time
+                            
                             // 勤務時間の計算
                             let workTime = 0
                             
@@ -487,15 +519,43 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                                 作成時刻: record.created_at,
                                 計算結果: workTime,
                                 判定: isCurrentWork,
-                                再出勤判定: isRecheckIn
+                                再出勤判定: isRecheckIn,
+                                休憩中: isOnBreak
                               })
                             }
                             
+                            // 表示状態の判定
+                            let statusText = ''
+                            let statusClass = 'text-gray-600'
+                            
+                            if (isCurrentWork || isRecheckIn) {
+                              if (isOnBreak) {
+                                statusText = '現在休憩中'
+                                statusClass = 'text-yellow-600 font-medium'
+                              } else {
+                                statusText = '現在勤務中'
+                                statusClass = 'text-blue-600 font-medium'
+                              }
+                            } else {
+                              statusText = `${index + 1}回目`
+                            }
+                            
                             return (
-                              <div key={`${record.date}-${record.created_at}`} className={`text-sm ${(isCurrentWork || isRecheckIn) ? 'text-blue-600 font-medium' : 'text-gray-600'}`}>
-                                {(isCurrentWork || isRecheckIn) ? '現在勤務中' : `${index + 1}回目`}: {record.check_in_time && formatTime(record.check_in_time)} - 
-                                {record.check_out_time && !isRecheckIn ? formatTime(record.check_out_time) : '勤務中'} 
+                              <div key={`${record.date}-${record.created_at}`} className={`text-sm ${statusClass}`}>
+                                {statusText}: {record.check_in_time && formatTime(record.check_in_time)} - 
+                                {record.check_out_time && !isRecheckIn ? formatTime(record.check_out_time) : 
+                                 (isOnBreak ? '休憩中' : '勤務中')} 
                                 ({formatMinutesToTime(workTime)})
+                                {record.break_start_time && record.break_end_time && (
+                                  <span className="text-gray-500 ml-2">
+                                    (休憩: {formatTime(record.break_start_time)}-{formatTime(record.break_end_time)})
+                                  </span>
+                                )}
+                                {isOnBreak && record.break_start_time && (
+                                  <span className="text-yellow-600 ml-2">
+                                    (休憩開始: {formatTime(record.break_start_time)})
+                                  </span>
+                                )}
                               </div>
                             )
                           })}

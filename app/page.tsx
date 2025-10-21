@@ -6,12 +6,14 @@ import { toast } from 'sonner'
 import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { HistoryView } from '@/components/HistoryView'
+import { AdminDashboard } from '@/components/AdminDashboard'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Clock, TrendingUp, LogOut } from 'lucide-react'
+import { Users, Clock, TrendingUp, LogOut, Settings } from 'lucide-react'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
 import { supabase } from '@/lib/supabase'
 import { calculateTodayWorkTime, getCurrentTimeFromServer, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
+import { isAdmin } from '@/lib/admin'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -26,10 +28,12 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [currentTime, setCurrentTime] = useState<string>(new Date().toISOString())
   const [showHistory, setShowHistory] = useState(false)
+  const [showAdminDashboard, setShowAdminDashboard] = useState(false)
 
   // 今日の日付を取得（UTC基準）
   const today = new Date().toISOString().split('T')[0]
   console.log('今日の日付（UTC）:', today)
+
 
   // 今日の勤務時間を計算（currentTimeを依存関係に追加してリアルタイム更新）
   const workTimeCalculation = calculateTodayWorkTime(
@@ -642,6 +646,12 @@ export default function Home() {
           <Button variant="outline" onClick={() => setShowHistory(true)}>
             履歴確認
           </Button>
+          {isAdmin(session?.user?.email) && (
+            <Button variant="outline" onClick={() => setShowAdminDashboard(true)} className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              管理者ダッシュボード
+            </Button>
+          )}
           <Button variant="outline">
             月次レポート
           </Button>
@@ -659,6 +669,21 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* 履歴表示 */}
+      {showHistory && (
+        <HistoryView 
+          userId={session?.user?.email || ''} 
+          onBack={() => setShowHistory(false)} 
+        />
+      )}
+
+      {/* 管理者ダッシュボード */}
+      {showAdminDashboard && (
+        <AdminDashboard 
+          onBack={() => setShowAdminDashboard(false)} 
+        />
+      )}
     </div>
   )
 }
