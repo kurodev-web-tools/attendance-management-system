@@ -7,6 +7,7 @@ import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { HistoryView } from '@/components/HistoryView'
 import { AdminDashboard } from '@/components/AdminDashboard'
+import { MonthlyReport } from '@/components/MonthlyReport'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut, Settings } from 'lucide-react'
@@ -26,6 +27,7 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState<string>(new Date().toISOString())
   const [showHistory, setShowHistory] = useState(false)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
+  const [showMonthlyReport, setShowMonthlyReport] = useState(false)
 
   // 今日の日付を取得（UTC基準）
   const today = new Date().toISOString().split('T')[0]
@@ -268,6 +270,17 @@ export default function Home() {
         <HistoryView 
           userId={session.user?.email || ''} 
           onBack={() => setShowHistory(false)} 
+        />
+      </div>
+    )
+  }
+
+  // 月次レポート表示の場合は月次レポートコンポーネントを表示
+  if (showMonthlyReport) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <MonthlyReport 
+          onBack={() => setShowMonthlyReport(false)} 
         />
       </div>
     )
@@ -558,7 +571,7 @@ export default function Home() {
               管理者ダッシュボード
             </Button>
           )}
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowMonthlyReport(true)}>
             月次レポート
           </Button>
           <Button variant="outline">
