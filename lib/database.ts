@@ -19,8 +19,6 @@ export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
     ...record,
     check_in_time: record.check_in_time === undefined ? null : record.check_in_time,
     check_out_time: record.check_out_time === undefined ? null : record.check_out_time,
-    break_start_time: record.break_start_time === undefined ? null : record.break_start_time,
-    break_end_time: record.break_end_time === undefined ? null : record.break_end_time,
   }
   
   console.log('保存する勤怠データ:', cleanRecord)

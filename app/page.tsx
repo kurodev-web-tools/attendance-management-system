@@ -18,11 +18,8 @@ import { isAdmin } from '@/lib/admin'
 export default function Home() {
   const { data: session, status } = useSession()
   const [isCheckedIn, setIsCheckedIn] = useState(false)
-  const [isOnBreak, setIsOnBreak] = useState(false)
   const [checkInTime, setCheckInTime] = useState<string>()
   const [checkOutTime, setCheckOutTime] = useState<string>()
-  const [breakStartTime, setBreakStartTime] = useState<string>()
-  const [breakEndTime, setBreakEndTime] = useState<string>()
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
@@ -39,8 +36,8 @@ export default function Home() {
   const workTimeCalculation = calculateTodayWorkTime(
     checkInTime,
     checkOutTime,
-    breakStartTime,
-    breakEndTime,
+    null, // breakStartTime
+    null, // breakEndTime
     currentTime
   )
   
@@ -165,7 +162,7 @@ export default function Home() {
                 console.log('退勤時刻（JST表示）:', new Date(latestCheckOut).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
               }
               
-              // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中（休憩中も含む）
+              // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
               const isCurrentlyWorking = !!latestCheckIn && !latestCheckOut
               setIsCheckedIn(isCurrentlyWorking)
               
@@ -173,8 +170,6 @@ export default function Home() {
               console.log('=== 出勤状態判定 ===')
               console.log('出勤時刻:', latestCheckIn)
               console.log('退勤時刻:', latestCheckOut)
-              console.log('休憩開始時刻:', attendanceData.break_start_time)
-              console.log('休憩終了時刻:', attendanceData.break_end_time)
               console.log('判定結果:', isCurrentlyWorking ? '出勤中' : '退勤済み')
               console.log('==================')
               console.log('退勤後の出勤時刻保持確認:', { 
@@ -182,9 +177,6 @@ export default function Home() {
                 checkOutTime: latestCheckOut,
                 shouldShowCheckIn: latestCheckIn ? '表示する' : '表示しない'
               })
-              
-              // 休憩状態の判定
-              setIsOnBreak(!!attendanceData.break_start_time && !attendanceData.break_end_time)
               
               // 時刻データを設定（確実にUTC文字列として設定）
               // Supabaseから取得した時刻文字列にZが含まれていない場合があるため正規化
@@ -196,8 +188,6 @@ export default function Home() {
               
               setCheckInTime(normalizeTimeString(latestCheckIn))
               setCheckOutTime(normalizeTimeString(latestCheckOut))
-              setBreakStartTime(normalizeTimeString(attendanceData.break_start_time))
-              setBreakEndTime(normalizeTimeString(attendanceData.break_end_time))
               
               console.log('設定された出勤時刻（正規化後）:', normalizeTimeString(latestCheckIn))
               console.log('設定された退勤時刻（正規化後）:', normalizeTimeString(latestCheckOut))
@@ -304,10 +294,7 @@ export default function Home() {
     console.log('現在の退勤時刻:', checkOutTime)
     console.log('退勤時刻を保持:', checkOutTime ? 'はい' : 'いいえ')
     
-    // 休憩時刻のみリセット（退勤時刻は保持）
-    setBreakStartTime(undefined)
-    setBreakEndTime(undefined)
-    setIsOnBreak(false)
+    // 忙しさレベルをリセット
     setBusyLevel(50)
     setBusyComment('')
     
@@ -321,8 +308,6 @@ export default function Home() {
         date: today,
         check_in_time: now,
         check_out_time: checkOutTime || null, // 前回の退勤時刻を保持
-        break_start_time: null,
-        break_end_time: null,
       })
       
       await saveAttendanceRecord({
@@ -330,8 +315,6 @@ export default function Home() {
         date: today,
         check_in_time: now,
         check_out_time: checkOutTime || null, // 前回の退勤時刻を保持
-        break_start_time: null,
-        break_end_time: null,
       })
       
       // 忙しさレベルもリセット
@@ -366,8 +349,6 @@ export default function Home() {
     console.log('現在の出勤時刻:', checkInTime)
     
     setIsCheckedIn(false)
-    setIsOnBreak(false)
-    // 休憩時刻は保持（履歴として残す）
 
     try {
       await saveAttendanceRecord({
@@ -395,11 +376,8 @@ export default function Home() {
 
     // ローカル状態をリセット
     setIsCheckedIn(false)
-    setIsOnBreak(false)
     setCheckInTime(undefined)
     setCheckOutTime(undefined)
-    setBreakStartTime(undefined)
-    setBreakEndTime(undefined)
     setBusyLevel(50)
     setBusyComment('')
     setTotalWorkMinutes(0) // 累積勤務時間もリセット
@@ -435,61 +413,6 @@ export default function Home() {
     }
   }
 
-  // 休憩開始処理
-  const handleBreakStart = async () => {
-    if (!session?.user?.email) return
-
-    // サーバーから正確な時刻を取得
-    const now = await getCurrentTimeFromServer()
-    
-    setIsOnBreak(true)
-
-    try {
-      await saveAttendanceRecord({
-        user_id: session.user.email,
-        date: today,
-        break_start_time: now,
-        // 出勤時刻も保持する
-        check_in_time: checkInTime || null,
-        check_out_time: checkOutTime || null,
-      })
-      
-      // 保存成功後に時刻を設定
-      setBreakStartTime(now)
-      toast.success('休憩開始を記録しました')
-    } catch (error) {
-      console.error('休憩開始記録の保存エラー:', error)
-      toast.error('休憩開始記録の保存に失敗しました。')
-    }
-  }
-
-  // 休憩終了処理
-  const handleBreakEnd = async () => {
-    if (!session?.user?.email) return
-
-    // サーバーから正確な時刻を取得
-    const now = await getCurrentTimeFromServer()
-    
-    setIsOnBreak(false)
-
-    try {
-      await saveAttendanceRecord({
-        user_id: session.user.email,
-        date: today,
-        break_end_time: now,
-        // 出勤時刻も保持する
-        check_in_time: checkInTime || null,
-        check_out_time: checkOutTime || null,
-      })
-      
-      // 保存成功後に時刻を設定
-      setBreakEndTime(now)
-      toast.success('休憩終了を記録しました')
-    } catch (error) {
-      console.error('休憩終了記録の保存エラー:', error)
-      toast.error('休憩終了記録の保存に失敗しました。')
-    }
-  }
 
   // 忙しさレベル更新処理
   const handleBusyLevelUpdate = async (level: number, comment: string) => {
@@ -541,15 +464,10 @@ export default function Home() {
           {/* 勤怠記録 */}
           <AttendanceButtons
             isCheckedIn={isCheckedIn}
-            isOnBreak={isOnBreak}
             checkInTime={checkInTime}
             checkOutTime={checkOutTime}
-            breakStartTime={breakStartTime}
-            breakEndTime={breakEndTime}
             onCheckIn={handleCheckIn}
             onCheckOut={handleCheckOut}
-            onBreakStart={handleBreakStart}
-            onBreakEnd={handleBreakEnd}
           />
 
           {/* 忙しさメーター */}
@@ -561,7 +479,7 @@ export default function Home() {
         </div>
 
         {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">今日の勤務時間</CardTitle>
@@ -601,18 +519,6 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">休憩時間</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{workTimeCalculation.formattedBreakTime}</div>
-              <p className="text-xs text-muted-foreground">
-                累計休憩時間
-              </p>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

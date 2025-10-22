@@ -91,8 +91,8 @@ export function formatTime(isoString: string): string {
 export function calculateTodayWorkTime(
   checkInTime?: string | null, // Allow null
   checkOutTime?: string | null, // Allow null
-  breakStartTime?: string | null, // Allow null
-  breakEndTime?: string | null,
+  breakStartTime?: string | null, // Allow null (unused)
+  breakEndTime?: string | null, // Allow null (unused)
   currentTime?: string // 現在時刻（リアルタイム更新用）
 ): {
   totalWorkMinutes: number
@@ -137,16 +137,11 @@ export function calculateTodayWorkTime(
     })
   }
 
-  // 休憩時間の計算
-  if (breakStartTime && breakEndTime) {
-    breakMinutes = calculateMinutesBetween(breakStartTime, breakEndTime)
-  } else if (breakStartTime && !breakEndTime) {
-    // 休憩中の場合、現在時刻まで
-    breakMinutes = calculateMinutesBetween(breakStartTime, now)
-  }
+  // 休憩時間は常に0（休憩システムを削除）
+  breakMinutes = 0
 
-  // 実働時間の計算
-  netWorkMinutes = Math.max(0, totalWorkMinutes - breakMinutes)
+  // 実働時間は勤務時間と同じ（休憩時間を差し引かない）
+  netWorkMinutes = totalWorkMinutes
 
   return {
     totalWorkMinutes,

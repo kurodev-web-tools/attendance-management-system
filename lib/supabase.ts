@@ -21,10 +21,7 @@ export interface AttendanceRecord {
   date: string
   check_in_time?: string | null
   check_out_time?: string | null
-  break_start_time?: string | null
-  break_end_time?: string | null
   total_work_hours?: number
-  total_break_hours?: number
   created_at: string
   updated_at: string
 }

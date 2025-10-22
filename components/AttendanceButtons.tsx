@@ -2,34 +2,24 @@
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Clock, LogIn, LogOut, Coffee } from 'lucide-react'
+import { Clock, LogIn, LogOut } from 'lucide-react'
 import { formatTime } from '@/lib/timeUtils'
 
 interface AttendanceButtonsProps {
   isCheckedIn: boolean
-  isOnBreak: boolean
   checkInTime?: string
   checkOutTime?: string
-  breakStartTime?: string
-  breakEndTime?: string
   onCheckIn: () => void
   onCheckOut: () => void
-  onBreakStart: () => void
-  onBreakEnd: () => void
   disabled?: boolean
 }
 
 export function AttendanceButtons({
   isCheckedIn,
-  isOnBreak,
   checkInTime,
   checkOutTime,
-  breakStartTime,
-  breakEndTime,
   onCheckIn,
   onCheckOut,
-  onBreakStart,
-  onBreakEnd,
   disabled = false
 }: AttendanceButtonsProps) {
 
@@ -55,12 +45,12 @@ export function AttendanceButtons({
           </Button>
           <Button
             onClick={onCheckOut}
-            disabled={disabled || !isCheckedIn || isOnBreak}
+            disabled={disabled || !isCheckedIn}
             variant="destructive"
             className="h-12"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            退勤
+            休憩・退勤
           </Button>
         </div>
 
@@ -78,49 +68,11 @@ export function AttendanceButtons({
           </div>
         )}
 
-        {/* 休憩ボタン */}
-        {isCheckedIn && (
-          <div className="grid grid-cols-2 gap-4">
-            <Button
-              onClick={onBreakStart}
-              disabled={disabled || isOnBreak}
-              variant={isOnBreak ? "secondary" : "outline"}
-              className="h-12"
-            >
-              <Coffee className="h-4 w-4 mr-2" />
-              休憩開始
-            </Button>
-            <Button
-              onClick={onBreakEnd}
-              disabled={disabled || !isOnBreak}
-              variant="outline"
-              className="h-12"
-            >
-              <Coffee className="h-4 w-4 mr-2" />
-              休憩終了
-            </Button>
-          </div>
-        )}
-
-        {/* 休憩時刻表示 */}
-        {isOnBreak && (
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <div className="text-sm text-blue-700">
-              休憩開始: {breakStartTime ? formatTime(breakStartTime) : '--:--'}
-            </div>
-            {breakEndTime && (
-              <div className="text-sm text-blue-700">
-                休憩終了: {formatTime(breakEndTime)}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* 勤務状況表示 */}
         {(isCheckedIn || checkOutTime) && (
           <div className="p-3 bg-gray-50 rounded-lg">
             <div className="text-sm text-gray-700">
-              {isCheckedIn ? (isOnBreak ? '休憩中' : '勤務中') : '勤務終了 - 再度出勤可能'}
+              {isCheckedIn ? '勤務中' : '勤務終了 - 再度出勤可能'}
             </div>
           </div>
         )}

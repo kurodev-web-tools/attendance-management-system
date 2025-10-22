@@ -11,11 +11,9 @@ interface UserAttendance {
   user_id: string
   email: string
   todayWorkMinutes: number
-  currentStatus: 'working' | 'on_break' | 'checked_out' | 'not_checked_in'
+  currentStatus: 'working' | 'checked_out' | 'not_checked_in'
   checkInTime: string | null
   checkOutTime: string | null
-  isOnBreak: boolean
-  breakStartTime: string | null
   busyLevel: number | null
   busyComment: string | null
 }
@@ -166,8 +164,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           currentStatus: 'not_checked_in',
           checkInTime: latestRecord.check_in_time || null,
           checkOutTime: latestRecord.check_out_time || null,
-          isOnBreak: (latestRecord.break_start_time !== null && latestRecord.break_end_time === null),
-          breakStartTime: latestRecord.break_start_time || null,
           busyLevel: null,
           busyComment: null
         }
@@ -178,11 +174,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
           new Date(latestRecord.check_in_time) > new Date(latestRecord.check_out_time)
 
         if (latestRecord.check_in_time && (!latestRecord.check_out_time || isRecheckIn)) {
-          if (userAttendance.isOnBreak) {
-            userAttendance.currentStatus = 'on_break'
-          } else {
-            userAttendance.currentStatus = 'working'
-          }
+          userAttendance.currentStatus = 'working'
         } else if (latestRecord.check_out_time && !isRecheckIn) {
           userAttendance.currentStatus = 'checked_out'
         } else {
@@ -192,9 +184,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         console.log(`管理者ダッシュボード状況判定 ${userId}:`, {
           出勤時刻: latestRecord.check_in_time,
           退勤時刻: latestRecord.check_out_time,
-          休憩開始: latestRecord.break_start_time,
-          休憩終了: latestRecord.break_end_time,
-          休憩中フラグ: userAttendance.isOnBreak,
           再出勤判定: isRecheckIn,
           判定結果: userAttendance.currentStatus,
           総勤務時間: totalWorkMinutes
@@ -238,8 +227,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     switch (status) {
       case 'working':
         return 'text-green-600 bg-green-50'
-      case 'on_break':
-        return 'text-yellow-600 bg-yellow-50'
       case 'checked_out':
         return 'text-blue-600 bg-blue-50'
       case 'not_checked_in':
@@ -254,8 +241,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     switch (status) {
       case 'working':
         return '勤務中'
-      case 'on_break':
-        return '休憩中'
       case 'checked_out':
         return '退勤済み'
       case 'not_checked_in':
@@ -270,9 +255,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   
   // 勤務中の人数
   const workingCount = usersAttendance.filter(user => user.currentStatus === 'working').length
-  
-  // 休憩中の人数
-  const onBreakCount = usersAttendance.filter(user => user.currentStatus === 'on_break').length
 
   return (
     <div className="space-y-6">
@@ -295,7 +277,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
       </div>
 
       {/* 統計カード */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -315,18 +297,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
               <div>
                 <p className="text-sm text-gray-600">勤務中</p>
                 <p className="text-2xl font-bold">{workingCount}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-yellow-600" />
-              <div>
-                <p className="text-sm text-gray-600">休憩中</p>
-                <p className="text-2xl font-bold">{onBreakCount}</p>
               </div>
             </div>
           </CardContent>
@@ -394,9 +364,6 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                       )}
                       {user.checkOutTime && (
                         <p>退勤: {formatTime(user.checkOutTime)}</p>
-                      )}
-                      {user.isOnBreak && user.breakStartTime && (
-                        <p className="text-yellow-600">休憩開始: {formatTime(user.breakStartTime)}</p>
                       )}
                     </div>
                   </div>
