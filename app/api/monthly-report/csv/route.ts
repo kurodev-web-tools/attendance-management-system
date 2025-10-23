@@ -84,7 +84,7 @@ function generateCSV(reportData: MonthlyReportData, userId: string, year: number
   rows.push('')
   
   // サマリー情報
-  rows.push('=== サマリー ===')
+  rows.push('■■■ サマリー ■■■')
   rows.push('項目,値')
   rows.push(`総勤務時間,${Math.floor(reportData.totalWorkMinutes / 60)}:${(reportData.totalWorkMinutes % 60).toString().padStart(2, '0')}`)
   rows.push(`勤務日数,${reportData.workDays}日`)
@@ -95,7 +95,7 @@ function generateCSV(reportData: MonthlyReportData, userId: string, year: number
   rows.push('')
   
   // 日別詳細
-  rows.push('=== 日別詳細 ===')
+  rows.push('■■■ 日別詳細 ■■■')
   rows.push('日付,曜日,勤務時間(時:分),勤務時間(分),出勤時刻,退勤時刻,状況')
   
   // 日別データ

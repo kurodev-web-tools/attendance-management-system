@@ -1,26 +1,32 @@
 import { google } from 'googleapis'
 import type { MonthlyReportData } from './monthlyReportUtils'
 
-// Google Sheets APIの認証情報
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  },
-  scopes: [
-    'https://www.googleapis.com/auth/spreadsheets',
-    'https://www.googleapis.com/auth/drive'
-  ],
-})
+// Google Sheets APIの認証情報（環境変数が設定されている場合のみ）
+const auth = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY 
+  ? new google.auth.GoogleAuth({
+      credentials: {
+        client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      },
+      scopes: [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+      ],
+    })
+  : null
 
-const sheets = google.sheets({ version: 'v4', auth })
+const sheets = auth ? google.sheets({ version: 'v4', auth }) : null
 
-// 認証のテスト
-auth.getAccessToken().then(token => {
-  console.log('Google Sheets認証テスト成功:', !!token)
-}).catch(error => {
-  console.error('Google Sheets認証テスト失敗:', error)
-})
+// 認証のテスト（認証情報が設定されている場合のみ）
+if (auth) {
+  auth.getAccessToken().then(token => {
+    console.log('Google Sheets認証テスト成功:', !!token)
+  }).catch(error => {
+    console.error('Google Sheets認証テスト失敗:', error)
+  })
+} else {
+  console.log('Google Sheets API認証情報が設定されていません')
+}
 
 /**
  * スプレッドシートに月次レポートを書き込む
@@ -31,6 +37,10 @@ export async function writeMonthlyReportToSheet(
   year: number,
   month: number
 ): Promise<string> {
+  if (!auth || !sheets) {
+    throw new Error('Google Sheets API認証情報が設定されていません')
+  }
+
   try {
     // 認証情報のデバッグ
     console.log('Google Sheets認証情報:', {

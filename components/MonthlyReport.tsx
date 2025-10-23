@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Calendar, Download, Clock, TrendingUp } from 'lucide-react'
@@ -27,7 +27,7 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
 
   // 従業員リストを取得
-  const fetchEmployeeList = async () => {
+  const fetchEmployeeList = useCallback(async () => {
     try {
       const response = await fetch('/api/employees', {
         credentials: 'include'
@@ -43,10 +43,10 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
       console.error('従業員リスト取得エラー:', err)
       setError(err instanceof Error ? err.message : '従業員リストの取得に失敗しました')
     }
-  }
+  }, [])
 
   // 月次レポートデータを取得
-  const fetchMonthlyReport = async () => {
+  const fetchMonthlyReport = useCallback(async () => {
     if (!selectedUserId) return
 
     setLoading(true)
@@ -72,7 +72,7 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedUserId, selectedYear, selectedMonth])
 
   // CSVエクスポート
   const exportToCSV = async () => {
