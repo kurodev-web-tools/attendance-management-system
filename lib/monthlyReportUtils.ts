@@ -109,32 +109,20 @@ function generateDailyData(
     let checkOutTime: string | null = null
     let isCompleteDay = false
 
-    // HistoryViewと同じロジックで処理
-    const displayRecords: AttendanceRecord[] = []
-    let currentCheckIn: AttendanceRecord | null = null
+    // 重複を除去してユニークな出退勤ペアを構築（メインページと同じロジック）
+    const uniqueRecords = new Map<string, AttendanceRecord>()
 
-    for (const record of sortedRecords) {
-      if (record.check_in_time && !currentCheckIn) {
-        // 新しい出勤サイクルを開始
-        currentCheckIn = record
-      } else if (record.check_out_time && currentCheckIn) {
-        // 退勤記録でサイクルを完成
-        displayRecords.push({
-          ...currentCheckIn,
-          check_out_time: record.check_out_time
-        })
-        currentCheckIn = null
-      } else if (record.check_in_time && currentCheckIn && currentCheckIn.check_in_time !== record.check_in_time) {
-        // 既に出勤中に新しい出勤記録がある場合（再出勤）
-        displayRecords.push(currentCheckIn)
-        currentCheckIn = record
+    sortedRecords.forEach((record) => {
+      if (record.check_in_time) {
+        const key = `${record.check_in_time}`
+        if (!uniqueRecords.has(key) || !uniqueRecords.get(key)!.check_out_time) {
+          uniqueRecords.set(key, record)
+        }
       }
-    }
+    })
 
-    // 最後に出勤のみの場合は現在勤務中として追加
-    if (currentCheckIn) {
-      displayRecords.push(currentCheckIn)
-    }
+    // ユニークなレコードからdisplayRecordsを構築
+    const displayRecords: AttendanceRecord[] = Array.from(uniqueRecords.values())
 
     // 総勤務時間を計算（HistoryViewと同じロジック）
     totalWorkMinutes = displayRecords.reduce((total, record) => {
@@ -142,15 +130,11 @@ function generateDailyData(
       
       let diffMinutes = 0
       
-      // 再出勤の判定：出勤時刻が退勤時刻より後の場合は現在勤務中として扱う
-      const isRecheckIn = record.check_out_time && 
-        new Date(record.check_in_time) > new Date(record.check_out_time)
-      
-      if (record.check_out_time && !isRecheckIn) {
+      if (record.check_out_time) {
         // 完了したペアの場合
         diffMinutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
       } else {
-        // 現在勤務中の場合（退勤時刻がない、または再出勤）
+        // 現在勤務中の場合（退勤時刻がない）
         // 履歴表示では現在時刻ではなく、レコードの作成時刻を使用
         const lastRecord = sortedRecords[sortedRecords.length - 1]
         diffMinutes = calculateMinutesBetween(record.check_in_time, lastRecord.created_at)

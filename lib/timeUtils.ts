@@ -14,37 +14,57 @@ export async function getCurrentTimeFromServer(): Promise<string> {
   } catch (error) {
     console.error('サーバー時刻取得エラー:', error)
     // フォールバック：デバイス時刻を使用
-    return new Date().toISOString()
+    return new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'})
   }
 }
 
-// 2つのISO文字列間の分数を計算するヘルパー関数
-export function calculateMinutesBetween(startIso: string, endIso: string): number {
-  // 時刻文字列を正規化（末尾にZがなければ追加）
-  const normalizedStartIso = startIso.endsWith('Z') ? startIso : startIso + 'Z'
-  const normalizedEndIso = endIso.endsWith('Z') ? endIso : endIso + 'Z'
-  
-  const start = new Date(normalizedStartIso)
-  const end = new Date(normalizedEndIso)
-  const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
-  const minutes = Math.max(1, Math.ceil(diffSeconds / 60))
-  
-  // デバッグ情報を追加（540分問題の調査用）
-  if (minutes > 300) { // 5時間以上の場合のみログ出力
-    console.log('🚨 長時間計算検出:', {
-      originalStartIso: startIso,
-      originalEndIso: endIso,
-      normalizedStartIso,
-      normalizedEndIso,
-      startTime: start.toISOString(),
-      endTime: end.toISOString(),
-      diffSeconds,
-      minutes,
-      diffHours: minutes / 60
-    })
+// 2つの時刻文字列間の分数を計算するヘルパー関数（日本時間固定）
+export function calculateMinutesBetween(startTime: string, endTime: string): number {
+  try {
+    // 時刻文字列を分に変換する関数
+    const timeToMinutes = (timeStr: string): number => {
+      if (!timeStr) return 0
+      
+      // ISO形式の場合（例：2025-10-23T23:22:00）
+      if (timeStr.includes('T')) {
+        const timePart = timeStr.split('T')[1]?.substring(0, 8) || '00:00:00'
+        const [hours, minutes] = timePart.split(':').map(Number)
+        return hours * 60 + minutes
+      }
+      
+      // スラッシュ形式の場合（例：2025/10/23 23:22:00）
+      if (timeStr.includes('/')) {
+        const timeMatch = timeStr.match(/(\d{2}:\d{2}):\d{2}/)
+        if (timeMatch) {
+          const [hours, minutes] = timeMatch[1].split(':').map(Number)
+          return hours * 60 + minutes
+        }
+      }
+      
+      // 時刻形式の場合（例：23:22:00）
+      if (timeStr.includes(':')) {
+        const [hours, minutes] = timeStr.split(':').map(Number)
+        return hours * 60 + minutes
+      }
+      
+      return 0
+    }
+    
+    const startMinutes = timeToMinutes(startTime)
+    const endMinutes = timeToMinutes(endTime)
+    
+    if (startMinutes === 0 || endMinutes === 0) {
+      console.error('無効な時刻:', { startTime, endTime })
+      return 0
+    }
+    
+    const diffMinutes = Math.max(1, endMinutes - startMinutes)
+    console.log(`calculateMinutesBetween - ${startTime} to ${endTime}: ${diffMinutes}分`)
+    return diffMinutes
+  } catch (error) {
+    console.error('calculateMinutesBetween エラー:', error)
+    return 0
   }
-  
-  return minutes
 }
 
 // 分数を「X時間Y分」形式にフォーマットする関数
@@ -55,34 +75,38 @@ export function formatMinutesToTime(minutes: number): string {
   return `${hours}時間${mins}分`
 }
 
-// 時刻を「HH:MM」形式にフォーマットする関数
-export function formatTime(isoString: string): string {
+// 時刻を「HH:MM」形式にフォーマットする関数（日本時間固定）
+export function formatTime(timeString: string): string {
   try {
-    // 時刻文字列を正規化（末尾にZがなければ追加）
-    const normalizedTimeString = isoString.endsWith('Z') ? isoString : isoString + 'Z'
+    if (!timeString) return '--:--'
     
-    // データベースに保存されたUTC時刻をJSTで表示
-    const date = new Date(normalizedTimeString)
+    console.log(`formatTime - 入力: ${timeString}`)
     
-    // 無効な日付の場合のチェック
-    if (isNaN(date.getTime())) {
-      console.error(`formatTime - 無効な日付文字列: ${isoString}`)
-      return '--:--'
+    // 時刻文字列から時刻部分を抽出
+    if (timeString.includes('T')) {
+      // ISO形式の場合（例：2025-10-23T23:22:00）
+      const timePart = timeString.split('T')[1]?.substring(0, 5) || ''
+      console.log(`formatTime - ISO形式抽出: ${timePart}`)
+      return timePart
+    } else if (timeString.includes(':')) {
+      // スラッシュ形式の場合（例：2025/10/23 23:22:00）
+      const timeMatch = timeString.match(/(\d{2}:\d{2})/)
+      if (timeMatch) {
+        console.log(`formatTime - スラッシュ形式抽出: ${timeMatch[1]}`)
+        return timeMatch[1]
+      }
+      
+      // 時刻形式の場合（例：23:22:00）
+      const result = timeString.substring(0, 5)
+      console.log(`formatTime - 時刻形式抽出: ${result}`)
+      return result
+    } else {
+      // その他の場合はそのまま返す
+      console.log(`formatTime - そのまま返す: ${timeString}`)
+      return timeString
     }
-    
-    const jstTime = date.toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'Asia/Tokyo'
-    })
-    
-    // デバッグログ
-    console.log(`formatTime - 入力: ${isoString} → 正規化: ${normalizedTimeString} → 出力JST: ${jstTime}`)
-    
-    return jstTime
   } catch (error) {
-    console.error(`formatTime - エラー: ${error}, 入力: ${isoString}`)
+    console.error(`formatTime - エラー: ${error}, 入力: ${timeString}`)
     return '--:--'
   }
 }
@@ -108,7 +132,7 @@ export function calculateTodayWorkTime(
   let netWorkMinutes = 0
 
   // 現在時刻を決定（効率的なリアルタイム更新のため）
-  const now = currentTime || new Date().toISOString()
+  const now = currentTime || new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'})
   
   // 出勤時刻がある場合
   if (checkInTime) {

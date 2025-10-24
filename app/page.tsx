@@ -8,12 +8,13 @@ import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { HistoryView } from '@/components/HistoryView'
 import { AdminDashboard } from '@/components/AdminDashboard'
 import { MonthlyReport } from '@/components/MonthlyReport'
+import { formatTime } from '@/lib/timeUtils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, TrendingUp, LogOut, Settings } from 'lucide-react'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
-import { supabase } from '@/lib/supabase'
-import { calculateTodayWorkTime, getCurrentTimeFromServer, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
+import { supabase, AttendanceRecord } from '@/lib/supabase'
+import { calculateTodayWorkTime, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
 import { isAdmin } from '@/lib/admin'
 
 export default function Home() {
@@ -24,14 +25,14 @@ export default function Home() {
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
-  const [currentTime, setCurrentTime] = useState<string>(new Date().toISOString())
+  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
   const [showHistory, setShowHistory] = useState(false)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
   const [showMonthlyReport, setShowMonthlyReport] = useState(false)
 
-  // 今日の日付を取得（UTC基準）
-  const today = new Date().toISOString().split('T')[0]
-  console.log('今日の日付（UTC）:', today)
+  // 今日の日付を取得（日本時間基準）
+  const today = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
+  console.log('今日の日付（日本時間）:', today)
 
 
   // 今日の勤務時間を計算（currentTimeを依存関係に追加してリアルタイム更新）
@@ -45,17 +46,18 @@ export default function Home() {
   
   // 累積勤務時間を計算（複数回の出退勤を考慮）
   const [totalWorkMinutes, setTotalWorkMinutes] = useState(0)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
   
   useEffect(() => {
     // 累積勤務時間を計算
     const calculateTotalWorkTime = async () => {
       if (session?.user?.email) {
         try {
-          // 今日の全ての勤怠記録を取得
-          const { data: allRecords } = await supabase
-            .from('attendance_records')
-            .select('check_in_time, check_out_time, created_at')
-            .eq('user_id', session.user.email)
+            // 今日の全ての勤怠記録を取得
+            const { data: allRecords } = await supabase
+              .from('attendance_records')
+              .select('*')
+              .eq('user_id', session.user.email)
             .eq('date', today)
             .not('check_in_time', 'is', null)
             .order('created_at', { ascending: true }) // 時系列順でソート
@@ -63,61 +65,72 @@ export default function Home() {
           if (allRecords && allRecords.length > 0) {
             let totalMinutes = 0
             
-            // 出退勤のペアを作成して計算（時系列順で処理）
-            let currentCheckIn: string | null = null
-            
-            allRecords.forEach((record, index) => {
-              if (record.check_in_time && !currentCheckIn) {
-                // 出勤記録を開始
-                currentCheckIn = record.check_in_time
-                console.log(`出勤記録開始 [${index + 1}]:`, currentCheckIn)
-              } else if (record.check_out_time && currentCheckIn) {
-                // 退勤記録で勤務時間を計算
-                const minutes = calculateMinutesBetween(currentCheckIn, record.check_out_time)
-                totalMinutes += minutes
-                console.log(`勤務時間計算 [${index + 1}]:`, {
-                  checkInTime: currentCheckIn,
-                  checkOutTime: record.check_out_time,
-                  minutes,
-                  totalMinutes
-                })
-                currentCheckIn = null // ペア完了
-              } else if (record.check_in_time && currentCheckIn) {
-                // 既に出勤中に新しい出勤記録がある場合（再出勤）
-                // 前回の出勤から現在時刻まで計算
-                const minutes = calculateMinutesBetween(currentCheckIn, new Date().toISOString())
-                totalMinutes += minutes
-                console.log(`再出勤時の勤務時間計算 [${index + 1}]:`, {
-                  checkInTime: currentCheckIn,
-                  currentTime: new Date().toISOString(),
-                  minutes,
-                  totalMinutes
-                })
-                currentCheckIn = record.check_in_time // 新しい出勤記録を開始
+            // 出勤・退勤ペアを正しく処理（日付ごとにグループ化）
+            const recordsByDate = allRecords.reduce((groups, record) => {
+              const date = record.date
+              if (!groups[date]) {
+                groups[date] = []
               }
-            })
+              groups[date].push(record)
+              return groups
+            }, {} as Record<string, typeof allRecords>)
             
-            // 最後に出勤のみの場合は現在時刻まで計算（ただし、現在勤務中の場合のみ）
-            if (currentCheckIn && isCheckedIn && !checkOutTime) {
-              const currentMinutes = calculateMinutesBetween(currentCheckIn, new Date().toISOString())
-              totalMinutes += currentMinutes
-              console.log('現在勤務中の追加計算:', {
-                checkInTime: currentCheckIn,
-                currentMinutes,
-                totalMinutes,
-                currentTime: new Date().toISOString(),
-                condition: {
-                  currentCheckIn: !!currentCheckIn,
-                  isCheckedIn,
-                  checkOutTime: !!checkOutTime
+            // 各日の勤務時間を計算
+            Object.values(recordsByDate).forEach(dayRecords => {
+              const records = dayRecords as AttendanceRecord[]
+              // 作成日時順でソート
+              const sortedRecords = records.sort((a, b) => 
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+              )
+              
+              // 重複を除去してユニークな出退勤ペアを構築
+              const uniqueRecords = new Map<string, AttendanceRecord>()
+              
+              sortedRecords.forEach((record, index) => {
+                console.log(`レコード処理 [${index + 1}]:`, {
+                  出勤: record.check_in_time,
+                  退勤: record.check_out_time,
+                  作成日時: record.created_at
+                })
+                
+                if (record.check_in_time) {
+                  const key = `${record.check_in_time}`
+                  if (!uniqueRecords.has(key) || !uniqueRecords.get(key)?.check_out_time) {
+                    uniqueRecords.set(key, record)
+                  }
                 }
               })
-            }
+              
+              // ユニークなレコードから勤務時間を計算
+              uniqueRecords.forEach((record) => {
+                if (record.check_in_time && record.check_out_time) {
+                  // 完了したペアの場合
+                  const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
+                  totalMinutes += minutes
+                  console.log(`勤務時間計算 [完了済み]:`, {
+                    checkInTime: record.check_in_time,
+                    checkOutTime: record.check_out_time,
+                    minutes,
+                    totalMinutes
+                  })
+                } else if (record.check_in_time && !record.check_out_time) {
+                  // 現在勤務中の場合
+                  const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+                  totalMinutes += minutes
+                  console.log(`勤務時間計算 [現在勤務中]:`, {
+                    checkInTime: record.check_in_time,
+                    checkOutTime: '現在時刻',
+                    minutes,
+                    totalMinutes
+                  })
+                }
+              })
+              
+            })
             
             // デバッグ情報を追加
             console.log('累積勤務時間計算詳細:', {
               allRecordsCount: allRecords.length,
-              currentCheckIn,
               isCheckedIn,
               checkOutTime,
               totalMinutes
@@ -131,9 +144,9 @@ export default function Home() {
         }
       }
     }
-    
+
     calculateTotalWorkTime()
-  }, [session?.user?.email, today, isCheckedIn, checkOutTime])
+  }, [session?.user?.email, today, isCheckedIn, checkOutTime, checkInTime, refreshTrigger])
 
   // 今日のデータを読み込み
   const loadTodayData = useCallback(async () => {
@@ -155,13 +168,13 @@ export default function Home() {
               const latestCheckIn = attendanceData.check_in_time
               const latestCheckOut = attendanceData.check_out_time
               
-              console.log('出勤時刻（UTC）:', latestCheckIn)
-              console.log('退勤時刻（UTC）:', latestCheckOut)
+              console.log('出勤時刻（日本時間）:', latestCheckIn)
+              console.log('退勤時刻（日本時間）:', latestCheckOut)
               if (latestCheckIn) {
-                console.log('出勤時刻（JST表示）:', new Date(latestCheckIn).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
+                console.log('出勤時刻（表示）:', formatTime(latestCheckIn))
               }
               if (latestCheckOut) {
-                console.log('退勤時刻（JST表示）:', new Date(latestCheckOut).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
+                console.log('退勤時刻（表示）:', formatTime(latestCheckOut))
               }
               
               // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
@@ -184,15 +197,15 @@ export default function Home() {
               // Supabaseから取得した時刻文字列にZが含まれていない場合があるため正規化
               const normalizeTimeString = (timeStr: string | null) => {
                 if (!timeStr) return undefined
-                // 末尾にZがなければ追加してUTC時刻として認識させる
-                return timeStr.endsWith('Z') ? timeStr : timeStr + 'Z'
+                // 時刻文字列をそのまま返す（UTC変換しない）
+                return timeStr
               }
               
               setCheckInTime(normalizeTimeString(latestCheckIn))
               setCheckOutTime(normalizeTimeString(latestCheckOut))
               
-              console.log('設定された出勤時刻（正規化後）:', normalizeTimeString(latestCheckIn))
-              console.log('設定された退勤時刻（正規化後）:', normalizeTimeString(latestCheckOut))
+              console.log('設定された出勤時刻（日本時間）:', normalizeTimeString(latestCheckIn))
+              console.log('設定された退勤時刻（日本時間）:', normalizeTimeString(latestCheckOut))
             }
           } catch (attendanceError) {
             console.error('勤怠記録の読み込みエラー:', attendanceError)
@@ -224,12 +237,22 @@ export default function Home() {
     }
   }, [session?.user, today, loadTodayData])
 
+  // ページフォーカス時に累積勤務時間を再計算
+  useEffect(() => {
+    const handleFocus = () => {
+      setRefreshTrigger(prev => prev + 1)
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [])
+
   // 勤務時間をリアルタイム更新（10分ごと）
   useEffect(() => {
     if (isCheckedIn && !checkOutTime) {
       const timer = setInterval(() => {
         // 現在時刻を更新して勤務時間を再計算（ローディング画面は表示しない）
-        const now = new Date().toISOString()
+        const now = new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').replace(' ', 'T')
         // 状態更新により自動的に勤務時間が再計算される
         setCurrentTime(now)
       }, 600000) // 10分ごと
@@ -269,7 +292,11 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50 p-4">
         <HistoryView 
           userId={session.user?.email || ''} 
-          onBack={() => setShowHistory(false)} 
+          onBack={() => setShowHistory(false)}
+          onUpdate={() => {
+            // 履歴データの再取得をトリガー
+            console.log('履歴データの再取得をトリガー')
+          }}
         />
       </div>
     )
@@ -291,11 +318,17 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // サーバーから正確な時刻を取得
-    const now = await getCurrentTimeFromServer()
-    console.log('保存する時刻（サーバー時刻）:', now)
-    console.log('表示時刻（JST）:', new Date(now).toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo', hour12: false}))
+    // 日本時間で現在時刻を取得（ISO形式で統一）
+    const now = new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').replace(' ', 'T').replace(/\//g, '-').replace(' ', 'T')
+    console.log('保存する時刻（日本時間）:', now)
+    console.log('表示時刻（JST）:', now)
     
+    // 重複防止：ローディング中は処理をスキップ
+    if (loading) {
+      console.log('既に処理中です。処理をスキップします。')
+      return
+    }
+
     // 再出勤時の状態管理
     console.log('=== 再出勤処理開始 ===')
     console.log('現在の状態:', {
@@ -320,14 +353,14 @@ export default function Home() {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
-        check_out_time: checkOutTime || null, // 前回の退勤時刻を保持
+        check_out_time: null, // 新しい出勤記録では退勤時刻はnull
       })
       
       await saveAttendanceRecord({
         user_id: session.user.email,
         date: today,
         check_in_time: now,
-        check_out_time: checkOutTime || null, // 前回の退勤時刻を保持
+        check_out_time: null, // 新しい出勤記録では退勤時刻はnull
       })
       
       // 忙しさレベルもリセット
@@ -354,9 +387,15 @@ export default function Home() {
     if (!session?.user?.email) return
 
     setLoading(true)
-    // サーバーから正確な時刻を取得
-    const now = await getCurrentTimeFromServer()
+    // 日本時間で現在時刻を取得
+    const now = new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').replace(' ', 'T')
     
+    // 重複防止：ローディング中は処理をスキップ
+    if (loading) {
+      console.log('既に処理中です。処理をスキップします。')
+      return
+    }
+
     console.log('=== 退勤処理開始 ===')
     console.log('退勤時刻:', now)
     console.log('現在の出勤時刻:', checkInTime)
@@ -364,13 +403,22 @@ export default function Home() {
     setIsCheckedIn(false)
 
     try {
-      await saveAttendanceRecord({
-        user_id: session.user.email,
-        date: today,
-        check_out_time: now,
-        // 出勤時刻も保持する
-        check_in_time: checkInTime || null,
-      })
+      // 既存の出勤レコードを更新（退勤時刻を追加）
+      const { error: updateError } = await supabase
+        .from('attendance_records')
+        .update({
+          check_out_time: now,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', session.user.email)
+        .eq('date', today)
+        .eq('check_in_time', checkInTime)
+        .is('check_out_time', null) // 退勤時刻がnullのレコードのみ更新
+      
+      if (updateError) {
+        console.error('勤怠記録の更新エラー:', updateError)
+        throw updateError
+      }
       
       // 保存成功後に時刻を設定
       setCheckOutTime(now)
@@ -481,6 +529,7 @@ export default function Home() {
             checkOutTime={checkOutTime}
             onCheckIn={handleCheckIn}
             onCheckOut={handleCheckOut}
+            disabled={loading}
           />
 
           {/* 忙しさメーター */}
@@ -492,7 +541,7 @@ export default function Home() {
         </div>
 
         {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">今日の勤務時間</CardTitle>
@@ -506,23 +555,90 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">総勤務時間</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{workTimeCalculation.formattedWorkTime}</div>
-              <p className="text-xs text-muted-foreground">
-                休憩時間含む
-              </p>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">累積勤務時間</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    // 累積勤務時間を再計算
+                    const calculateTotalWorkTime = async () => {
+                      if (!session?.user?.email) return
+                      
+                      try {
+                        const { data: allRecords, error } = await supabase
+                          .from('attendance_records')
+                          .select('*')
+                          .eq('user_id', session.user.email)
+                          .order('created_at', { ascending: true })
+                        
+                        if (error) throw error
+                        
+                        let totalMinutes = 0
+                        
+                        // 出勤・退勤ペアを正しく処理（日付ごとにグループ化）
+                        const recordsByDate = allRecords.reduce((groups, record) => {
+                          const date = record.date
+                          if (!groups[date]) {
+                            groups[date] = []
+                          }
+                          groups[date].push(record)
+                          return groups
+                        }, {} as Record<string, typeof allRecords>)
+                        
+                        // 各日の勤務時間を計算
+                        Object.values(recordsByDate).forEach(dayRecords => {
+                          const records = dayRecords as AttendanceRecord[]
+                          // 作成日時順でソート
+                          const sortedRecords = records.sort((a, b) => 
+                            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                          )
+                          
+                          // 重複を除去してユニークな出退勤ペアを構築
+                          const uniqueRecords = new Map<string, AttendanceRecord>()
+                          
+                          sortedRecords.forEach((record) => {
+                            if (record.check_in_time) {
+                              const key = `${record.check_in_time}`
+                              if (!uniqueRecords.has(key) || !uniqueRecords.get(key)?.check_out_time) {
+                                uniqueRecords.set(key, record)
+                              }
+                            }
+                          })
+                          
+                          // ユニークなレコードから勤務時間を計算
+                          uniqueRecords.forEach((record) => {
+                            if (record.check_in_time && record.check_out_time) {
+                              // 完了したペアの場合
+                              const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
+                              totalMinutes += minutes
+                            } else if (record.check_in_time && !record.check_out_time) {
+                              // 現在勤務中の場合
+                              const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+                              totalMinutes += minutes
+                            }
+                          })
+                        })
+                        
+                        setTotalWorkMinutes(totalMinutes)
+                        console.log('累積勤務時間を再計算:', totalMinutes)
+                        // refreshTriggerを更新してuseEffectをトリガー
+                        setRefreshTrigger(prev => prev + 1)
+                      } catch (error) {
+                        console.error('累積勤務時間の再計算エラー:', error)
+                      }
+                    }
+                    
+                    calculateTotalWorkTime()
+                  }}
+                >
+                  更新
+                </Button>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatMinutesToTime(totalWorkMinutes)}</div>
@@ -593,14 +709,24 @@ export default function Home() {
       {showHistory && (
         <HistoryView 
           userId={session?.user?.email || ''} 
-          onBack={() => setShowHistory(false)} 
+          onBack={() => setShowHistory(false)}
+          onUpdate={() => {
+            // 履歴データの再取得をトリガー
+            console.log('履歴データの再取得をトリガー')
+            // 累積勤務時間の再計算をトリガー
+            setRefreshTrigger(prev => prev + 1)
+          }}
         />
       )}
 
       {/* 管理者ダッシュボード */}
       {showAdminDashboard && (
         <AdminDashboard 
-          onBack={() => setShowAdminDashboard(false)} 
+          onBack={() => {
+            setShowAdminDashboard(false)
+            // 管理者ダッシュボードから戻る時に累積勤務時間を再計算
+            setRefreshTrigger(prev => prev + 1)
+          }} 
         />
       )}
     </div>

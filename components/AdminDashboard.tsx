@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Users, Clock, TrendingUp, Download } from 'lucide-react'
+import { ArrowLeft, Users, Clock, TrendingUp, Settings } from 'lucide-react'
 import { formatTime, formatMinutesToTime } from '@/lib/timeUtils'
 import { supabase, type AttendanceRecord } from '@/lib/supabase'
+import { AttendanceManagement } from './AttendanceManagement'
 
 interface UserAttendance {
   user_id: string
@@ -26,13 +27,16 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   const [usersAttendance, setUsersAttendance] = useState<UserAttendance[]>([])
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
+  const [selectedUser, setSelectedUser] = useState<UserAttendance | null>(null)
+  const [userAttendanceRecords, setUserAttendanceRecords] = useState<AttendanceRecord[]>([])
+  const [showManagement, setShowManagement] = useState(false)
 
   // 全ユーザーの勤怠状況を取得
   const fetchAllUsersAttendance = useCallback(async () => {
     setLoading(true)
     try {
       // 今日の日付を取得
-      const today = new Date().toISOString().split('T')[0]
+      const today = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
       
       // 全ユーザーの今日の勤怠記録を取得
       const { data: attendanceData, error: attendanceError } = await supabase
@@ -79,52 +83,44 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         latestRecords.forEach((latestRecord, userId) => {
           const userRecords = sortedAttendanceData.filter(record => record.user_id === userId)
           
-          // 実際の出退勤ペアを構築（メインページと同じロジック）
-          const displayRecords: AttendanceRecord[] = []
-          let currentCheckIn: AttendanceRecord | null = null
+          // 重複を除去してユニークな出退勤ペアを構築
+          const uniqueRecords = new Map<string, AttendanceRecord>()
+          
+          console.log(`管理者ダッシュボード - ユーザー ${userId} のレコード処理開始:`, userRecords.map(r => ({
+            出勤: r.check_in_time,
+            退勤: r.check_out_time,
+            作成日時: r.created_at
+          })))
 
-          for (const record of userRecords) {
-            if (record.check_in_time && !currentCheckIn) {
-              // 出勤記録を開始
-              currentCheckIn = record
-            } else if (record.check_out_time && currentCheckIn) {
-              // 退勤記録でペアを完成
-              // ただし、出勤時刻が退勤時刻より後の場合は再出勤として扱う
-              if (currentCheckIn.check_in_time && new Date(currentCheckIn.check_in_time) > new Date(record.check_out_time)) {
-                // 再出勤の場合：前回の出勤記録を退勤なしで追加し、新しい出勤記録を開始
-                displayRecords.push(currentCheckIn)
-                currentCheckIn = record
-              } else {
-                // 通常の退勤の場合
-                displayRecords.push({
-                  ...currentCheckIn,
-                  check_out_time: record.check_out_time
-                })
-                currentCheckIn = null
+          userRecords.forEach((record, index) => {
+            console.log(`管理者ダッシュボード - レコード処理 [${index + 1}]:`, {
+              出勤: record.check_in_time,
+              退勤: record.check_out_time,
+              作成日時: record.created_at
+            })
+            
+            if (record.check_in_time) {
+              const key = `${record.check_in_time}`
+              if (!uniqueRecords.has(key) || !uniqueRecords.get(key)!.check_out_time) {
+                uniqueRecords.set(key, record)
               }
-            } else if (record.check_in_time && currentCheckIn) {
-              // 既に出勤中に新しい出勤記録がある場合（再出勤）
-              // 前回の出勤記録を退勤なしで追加
-              displayRecords.push(currentCheckIn)
-              currentCheckIn = record
             }
-          }
+          })
 
-          // 最後に出勤のみの場合は現在勤務中として追加
-          if (currentCheckIn) {
-            displayRecords.push(currentCheckIn)
-          }
+          // ユニークなレコードからdisplayRecordsを構築
+          const displayRecords: AttendanceRecord[] = Array.from(uniqueRecords.values())
+
+          console.log(`管理者ダッシュボード - 構築されたdisplayRecords:`, displayRecords.map(r => ({
+            出勤: r.check_in_time,
+            退勤: r.check_out_time
+          })))
 
           // 総勤務時間を計算
           let totalWorkMinutes = 0
           displayRecords.forEach((record) => {
             if (!record.check_in_time) return
 
-            // 再出勤の判定：出勤時刻が退勤時刻より後の場合は現在勤務中として扱う
-            const isRecheckIn = record.check_out_time &&
-              new Date(record.check_in_time) > new Date(record.check_out_time)
-
-            if (record.check_out_time && !isRecheckIn) {
+            if (record.check_out_time) {
               // 完了したペアの場合
               const start = new Date(record.check_in_time)
               const end = new Date(record.check_out_time)
@@ -139,7 +135,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 累積: totalWorkMinutes
               })
             } else {
-              // 現在勤務中の場合（退勤時刻がない、または再出勤）
+              // 現在勤務中の場合（退勤時刻がない）
               const start = new Date(record.check_in_time)
               const end = new Date(record.created_at)
               const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
@@ -150,8 +146,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                 出勤時刻: record.check_in_time,
                 作成時刻: record.created_at,
                 計算結果: diffMinutes,
-                累積: totalWorkMinutes,
-                再出勤判定: isRecheckIn
+                累積: totalWorkMinutes
               })
             }
           })
@@ -169,22 +164,21 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
         }
 
         // 現在の状況を判定
-        // 再出勤の判定：出勤時刻が退勤時刻より後の場合は現在勤務中として扱う
-        const isRecheckIn = latestRecord.check_out_time && latestRecord.check_in_time &&
-          new Date(latestRecord.check_in_time) > new Date(latestRecord.check_out_time)
-
-        if (latestRecord.check_in_time && (!latestRecord.check_out_time || isRecheckIn)) {
+        // 最新の記録の出勤時刻と退勤時刻を比較
+        if (latestRecord.check_in_time && !latestRecord.check_out_time) {
+          // 出勤時刻はあるが退勤時刻がない場合は勤務中
           userAttendance.currentStatus = 'working'
-        } else if (latestRecord.check_out_time && !isRecheckIn) {
+        } else if (latestRecord.check_in_time && latestRecord.check_out_time) {
+          // 出勤時刻と退勤時刻の両方がある場合は退勤済み
           userAttendance.currentStatus = 'checked_out'
         } else {
+          // 出勤時刻がない場合は未出勤
           userAttendance.currentStatus = 'not_checked_in'
         }
 
         console.log(`管理者ダッシュボード状況判定 ${userId}:`, {
           出勤時刻: latestRecord.check_in_time,
           退勤時刻: latestRecord.check_out_time,
-          再出勤判定: isRecheckIn,
           判定結果: userAttendance.currentStatus,
           総勤務時間: totalWorkMinutes
         })
@@ -222,6 +216,41 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
     return () => clearInterval(interval)
   }, [fetchAllUsersAttendance])
 
+  // 選択されたユーザーの勤怠記録を取得
+  const fetchUserAttendanceRecords = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('user_id', userId)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('ユーザー勤怠記録取得エラー:', error)
+        return
+      }
+
+      setUserAttendanceRecords(data || [])
+    } catch (error) {
+      console.error('ユーザー勤怠記録取得エラー:', error)
+    }
+  }, [])
+
+  // ユーザー選択時の処理
+  const handleUserSelect = (user: UserAttendance) => {
+    setSelectedUser(user)
+    fetchUserAttendanceRecords(user.user_id)
+    setShowManagement(true)
+  }
+
+  // 管理画面を閉じる
+  const handleCloseManagement = () => {
+    setShowManagement(false)
+    setSelectedUser(null)
+    setUserAttendanceRecords([])
+  }
+
   // 状況表示の色を取得
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -256,6 +285,29 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
   // 勤務中の人数
   const workingCount = usersAttendance.filter(user => user.currentStatus === 'working').length
 
+  // 勤怠管理画面を表示
+  if (showManagement && selectedUser) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Button variant="outline" onClick={handleCloseManagement} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            管理者ダッシュボードに戻る
+          </Button>
+        </div>
+        <AttendanceManagement
+          userId={selectedUser.user_id}
+          userEmail={selectedUser.email}
+          attendanceRecords={userAttendanceRecords}
+          onUpdate={() => {
+            fetchAllUsersAttendance()
+            fetchUserAttendanceRecords(selectedUser.user_id)
+          }}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* ヘッダー */}
@@ -269,9 +321,65 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             <TrendingUp className="h-4 w-4" />
             更新
           </Button>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            エクスポート
+          <Button 
+            onClick={async () => {
+              try {
+                // 重複レコードを削除
+                const { data: allRecords, error } = await supabase
+                  .from('attendance_records')
+                  .select('*')
+                  .order('created_at', { ascending: true })
+                
+                if (error) throw error
+                
+                // 重複を検出して削除（より厳密な重複検出）
+                const seen = new Set()
+                const duplicates: string[] = []
+                
+                // 作成日時順でソート
+                const sortedRecords = allRecords.sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                )
+                
+                sortedRecords.forEach((record, index) => {
+                  // 同じユーザー、同じ日付、同じ出勤時刻のレコードを重複として検出
+                  const key = `${record.user_id}-${record.date}-${record.check_in_time}`
+                  if (seen.has(key)) {
+                    console.log(`重複レコード検出:`, {
+                      user_id: record.user_id,
+                      date: record.date,
+                      check_in_time: record.check_in_time,
+                      check_out_time: record.check_out_time,
+                      created_at: record.created_at,
+                      id: record.id
+                    })
+                    duplicates.push(record.id)
+                  } else {
+                    seen.add(key)
+                  }
+                })
+                
+                if (duplicates.length > 0) {
+                  const { error: deleteError } = await supabase
+                    .from('attendance_records')
+                    .delete()
+                    .in('id', duplicates)
+                  
+                  if (deleteError) throw deleteError
+                  
+                  console.log(`重複レコード ${duplicates.length} 件を削除しました`)
+                  fetchAllUsersAttendance()
+                } else {
+                  console.log('重複レコードはありませんでした')
+                }
+              } catch (error) {
+                console.error('重複レコード削除エラー:', error)
+              }
+            }}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            重複削除
           </Button>
         </div>
       </div>
@@ -322,7 +430,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
             <Users className="h-5 w-5" />
             ユーザー勤怠状況
             <span className="text-sm text-gray-500 ml-auto">
-              最終更新: {lastUpdated.toLocaleTimeString('ja-JP')}
+              最終更新: {lastUpdated.toLocaleTimeString('ja-JP', {timeZone: 'Asia/Tokyo'})}
             </span>
           </CardTitle>
         </CardHeader>
@@ -356,16 +464,27 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                     </div>
                   </div>
                   
-                  <div className="text-right">
-                    <p className="font-medium">{formatMinutesToTime(user.todayWorkMinutes)}</p>
-                    <div className="text-sm text-gray-500">
-                      {user.checkInTime && (
-                        <p>出勤: {formatTime(user.checkInTime)}</p>
-                      )}
-                      {user.checkOutTime && (
-                        <p>退勤: {formatTime(user.checkOutTime)}</p>
-                      )}
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-medium">{formatMinutesToTime(user.todayWorkMinutes)}</p>
+                      <div className="text-sm text-gray-500">
+                        {user.checkInTime && (
+                          <p>出勤: {formatTime(user.checkInTime)}</p>
+                        )}
+                        {user.checkOutTime && (
+                          <p>退勤: {formatTime(user.checkOutTime)}</p>
+                        )}
+                      </div>
                     </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleUserSelect(user)}
+                      className="flex items-center gap-2"
+                    >
+                      <Settings className="h-4 w-4" />
+                      管理
+                    </Button>
                   </div>
                 </div>
               ))}

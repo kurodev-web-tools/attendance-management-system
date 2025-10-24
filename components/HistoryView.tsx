@@ -24,6 +24,7 @@ interface BusyLevel {
 interface HistoryViewProps {
   userId: string
   onBack: () => void
+  onUpdate?: () => void
 }
 
 export function HistoryView({ userId, onBack }: HistoryViewProps) {
@@ -38,11 +39,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
     return records.reduce((total, record) => {
       if (!record.check_in_time) return total
       
-      // 再出勤の判定：出勤時刻が退勤時刻より後の場合は現在勤務中として扱う
-      const isRecheckIn = record.check_out_time && 
-        new Date(record.check_in_time) > new Date(record.check_out_time)
-      
-      if (record.check_out_time && !isRecheckIn) {
+      if (record.check_out_time) {
         // 完了したペアの場合
         const start = new Date(record.check_in_time)
         const end = new Date(record.check_out_time)
@@ -50,7 +47,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
         const diffMinutes = Math.max(1, Math.ceil(diffSeconds / 60))
         return total + diffMinutes
       } else {
-        // 現在勤務中の場合（退勤時刻がない、または再出勤）
+        // 現在勤務中の場合（退勤時刻がない）
         const start = new Date(record.check_in_time)
         const end = new Date(record.created_at)
         const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
@@ -65,8 +62,8 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
     setLoading(true)
     try {
       // タイムゾーンを考慮して日付文字列を生成
-      const startDateStr = startDate.toLocaleDateString('sv-SE') // YYYY-MM-DD形式
-      const endDateStr = endDate.toLocaleDateString('sv-SE') // YYYY-MM-DD形式
+      const startDateStr = startDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
+      const endDateStr = endDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
       
       console.log('履歴取得期間:', { startDateStr, endDateStr })
 
@@ -107,6 +104,20 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
     }
   }, [userId])
 
+  // 編集後の自動再取得
+  useEffect(() => {
+    const handleUpdate = () => {
+      const { start, end } = getDateRange()
+      if (start && end) {
+        fetchHistory(start, end)
+      }
+    }
+    
+    // 編集完了を監視
+    const interval = setInterval(handleUpdate, 3000) // 3秒ごとにチェック
+    return () => clearInterval(interval)
+  }, [currentDate, viewMode])
+
   // 連続勤務日数を計算
   const calculateConsecutiveWorkDays = (targetDate: string) => {
     let consecutiveDays = 0
@@ -134,9 +145,9 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
 
   // 期間を計算
   const getDateRange = useCallback(() => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-    const day = currentDate.getDate()
+    const year = parseInt(currentDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).split('/')[0])
+    const month = parseInt(currentDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).split('/')[1]) - 1
+    const day = parseInt(currentDate.toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).split('/')[2])
     
     switch (viewMode) {
       case 'day':
@@ -147,7 +158,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
         return { start: dayStart, end: dayEnd }
       case 'week':
         const startOfWeek = new Date(currentDate)
-        startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
+        startOfWeek.setDate(day - new Date(year, month, day).getDay())
         const endOfWeek = new Date(startOfWeek)
         endOfWeek.setDate(startOfWeek.getDate() + 6)
         return { start: startOfWeek, end: endOfWeek }
@@ -168,16 +179,18 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
   // 期間移動
   const movePeriod = (direction: 'prev' | 'next') => {
     const newDate = new Date(currentDate)
+    const day = newDate.getDate()
+    const month = newDate.getMonth()
     
     switch (viewMode) {
       case 'day':
-        newDate.setDate(currentDate.getDate() + (direction === 'next' ? 1 : -1))
+        newDate.setDate(day + (direction === 'next' ? 1 : -1))
         break
       case 'week':
-        newDate.setDate(currentDate.getDate() + (direction === 'next' ? 7 : -7))
+        newDate.setDate(day + (direction === 'next' ? 7 : -7))
         break
       case 'month':
-        newDate.setMonth(currentDate.getMonth() + (direction === 'next' ? 1 : -1))
+        newDate.setMonth(month + (direction === 'next' ? 1 : -1))
         break
     }
     
@@ -201,6 +214,19 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
           <Calendar className="h-6 w-6" />
           勤怠履歴
         </h1>
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            const { start, end } = getDateRange()
+            if (start && end) {
+              fetchHistory(start, end)
+            }
+          }}
+          disabled={loading}
+          className="flex items-center gap-2"
+        >
+          {loading ? '読み込み中...' : '更新'}
+        </Button>
       </div>
 
       {/* 期間選択 */}
@@ -252,15 +278,18 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
               {viewMode === 'day' && currentDate.toLocaleDateString('ja-JP', { 
                 year: 'numeric', 
                 month: 'long', 
-                day: 'numeric' 
+                day: 'numeric',
+                timeZone: 'Asia/Tokyo'
               })}
               {viewMode === 'week' && `${currentDate.toLocaleDateString('ja-JP', { 
                 month: 'long', 
-                day: 'numeric' 
+                day: 'numeric',
+                timeZone: 'Asia/Tokyo'
               })} 週`}
               {viewMode === 'month' && currentDate.toLocaleDateString('ja-JP', { 
                 year: 'numeric', 
-                month: 'long' 
+                month: 'long',
+                timeZone: 'Asia/Tokyo'
               })}
             </h2>
             {/* 週別・月別の合計時間表示 */}
@@ -311,9 +340,8 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
               const sortedRecords = validRecords
                 .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
               
-              // 元の複雑なロジックに戻して、より慎重に処理
-              const displayRecords: AttendanceRecord[] = []
-              let currentCheckIn: AttendanceRecord | null = null
+              // 重複を除去してユニークな出退勤ペアを構築（メインページと同じロジック）
+              const uniqueRecords = new Map<string, AttendanceRecord>()
               
               console.log('元のレコード詳細:', sortedRecords.map(r => ({
                 出勤: r.check_in_time,
@@ -321,39 +349,23 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                 作成日時: r.created_at
               })))
               
-              for (const record of sortedRecords) {
-                console.log('処理中のレコード:', {
+              sortedRecords.forEach((record, index) => {
+                console.log(`履歴処理中のレコード [${index + 1}]:`, {
                   出勤: record.check_in_time,
                   退勤: record.check_out_time,
                   作成日時: record.created_at
                 })
                 
-                // 出勤記録の処理
-                if (record.check_in_time && !currentCheckIn) {
-                  // 新しい出勤サイクルを開始
-                  console.log('新しい出勤サイクル開始')
-                  currentCheckIn = record
-                } else if (record.check_out_time && currentCheckIn) {
-                  // 退勤記録でサイクルを完成
-                  console.log('退勤記録でサイクル完成')
-                  displayRecords.push({
-                    ...currentCheckIn,
-                    check_out_time: record.check_out_time
-                  })
-                  currentCheckIn = null
-                } else if (record.check_in_time && currentCheckIn && currentCheckIn.check_in_time !== record.check_in_time) {
-                  // 既に出勤中に新しい出勤記録がある場合（再出勤）
-                  console.log('再出勤検出')
-                  displayRecords.push(currentCheckIn)
-                  currentCheckIn = record
+                if (record.check_in_time) {
+                  const key = `${record.check_in_time}`
+                  if (!uniqueRecords.has(key) || !uniqueRecords.get(key)!.check_out_time) {
+                    uniqueRecords.set(key, record)
+                  }
                 }
-              }
+              })
               
-              // 最後に出勤のみの場合は現在勤務中として追加
-              if (currentCheckIn) {
-                console.log('最後の出勤記録を追加')
-                displayRecords.push(currentCheckIn)
-              }
+              // ユニークなレコードからdisplayRecordsを構築
+              const displayRecords: AttendanceRecord[] = Array.from(uniqueRecords.values())
               
               // 詳細なデバッグログを追加
               console.log(`履歴表示 - 日付: ${date}`, {
@@ -378,11 +390,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                 
                 let diffMinutes = 0
                 
-                // 再出勤の判定：出勤時刻が退勤時刻より後の場合は現在勤務中として扱う
-                const isRecheckIn = record.check_out_time && 
-                  new Date(record.check_in_time) > new Date(record.check_out_time)
-                
-                if (record.check_out_time && !isRecheckIn) {
+                if (record.check_out_time) {
                   // 完了したペアの場合
                   const start = new Date(record.check_in_time)
                   const end = new Date(record.check_out_time)
@@ -396,7 +404,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                     累積: total + diffMinutes
                   })
                 } else {
-                  // 現在勤務中の場合（退勤時刻がない、または再出勤）
+                  // 現在勤務中の場合（退勤時刻がない）
                   const start = new Date(record.check_in_time)
                   const end = new Date(record.created_at)
                   const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
@@ -406,8 +414,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                     出勤時刻: record.check_in_time,
                     作成時刻: record.created_at,
                     計算結果: diffMinutes,
-                    累積: total + diffMinutes,
-                    再出勤判定: isRecheckIn
+                    累積: total + diffMinutes
                   })
                 }
                 
@@ -466,27 +473,21 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                         <p className="text-sm font-medium mb-2">出退勤詳細:</p>
                         <div className="space-y-1">
                           {displayRecords.map((record, index) => {
-                            // 現在勤務中の判定：出勤時刻があり、退勤時刻がない、かつ最新のレコードである
-                            const isLatestRecord = index === displayRecords.length - 1
-                            const isCurrentWork = record.check_in_time && !record.check_out_time && isLatestRecord
+                            // 現在勤務中の判定：出勤時刻があり、退勤時刻がない場合
+                            const isCurrentWork = record.check_in_time && !record.check_out_time
                             
                             // 勤務時間の計算
                             let workTime = 0
                             
-                            // 再出勤の判定：出勤時刻が退勤時刻より後の場合は現在勤務中として扱う
-                            const isRecheckIn = record.check_out_time && 
-                              new Date(record.check_in_time!) > new Date(record.check_out_time)
-                            
-                            if (record.check_in_time && record.check_out_time && !isRecheckIn) {
+                            if (record.check_in_time && record.check_out_time) {
                               // 完了したペアの場合
                               const start = new Date(record.check_in_time)
                               const end = new Date(record.check_out_time)
                               const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
                               workTime = Math.max(1, Math.ceil(diffSeconds / 60)) // 1分未満でも1分として計算
-                            } else if (isCurrentWork || isRecheckIn) {
-                              // 現在勤務中の場合（退勤時刻がない、または再出勤）
+                            } else if (isCurrentWork) {
+                              // 現在勤務中の場合（退勤時刻がない）
                               // 履歴表示では現在時刻ではなく、レコードの作成時刻を使用
-                              // これにより540分問題を防ぐ
                               const start = new Date(record.check_in_time!)
                               const end = new Date(record.created_at) // 作成時刻を使用
                               const diffSeconds = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 1000))
@@ -496,8 +497,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                                 出勤時刻: record.check_in_time,
                                 作成時刻: record.created_at,
                                 計算結果: workTime,
-                                判定: isCurrentWork,
-                                再出勤判定: isRecheckIn
+                                現在勤務中判定: isCurrentWork
                               })
                             }
                             
@@ -505,7 +505,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                             let statusText = ''
                             let statusClass = 'text-gray-600'
                             
-                            if (isCurrentWork || isRecheckIn) {
+                            if (isCurrentWork) {
                               statusText = '現在勤務中'
                               statusClass = 'text-blue-600 font-medium'
                             } else {
@@ -515,7 +515,7 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
                             return (
                               <div key={`${record.date}-${record.created_at}`} className={`text-sm ${statusClass}`}>
                                 {statusText}: {record.check_in_time && formatTime(record.check_in_time)} - 
-                                {record.check_out_time && !isRecheckIn ? formatTime(record.check_out_time) : '勤務中'} 
+                                {record.check_out_time ? formatTime(record.check_out_time) : '勤務中'} 
                                 ({formatMinutesToTime(workTime)})
                               </div>
                             )

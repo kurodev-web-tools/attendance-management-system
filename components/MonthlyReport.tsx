@@ -16,13 +16,13 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
   const [reportData, setReportData] = useState<MonthlyReportData | null>(null)
   const [employeeList, setEmployeeList] = useState<EmployeeList[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>('')
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1)
+  const [selectedYear, setSelectedYear] = useState<number>(parseInt(new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).split('/')[0]))
+  const [selectedMonth, setSelectedMonth] = useState<number>(parseInt(new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).split('/')[1]))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // 年度と月の選択肢を生成
-  const currentYear = new Date().getFullYear()
+  const currentYear = parseInt(new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).split('/')[0])
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
   const months = Array.from({ length: 12 }, (_, i) => i + 1)
 
@@ -109,7 +109,7 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
   // コンポーネントマウント時に従業員リストを取得
   useEffect(() => {
     fetchEmployeeList()
-  }, [])
+  }, [fetchEmployeeList])
 
   // パラメータが変更されたときにレポートを再取得
   useEffect(() => {
@@ -117,6 +117,7 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
       fetchMonthlyReport()
     }
   }, [selectedUserId, selectedYear, selectedMonth, fetchMonthlyReport])
+
 
   return (
     <div className="space-y-6">
@@ -130,6 +131,18 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
           <Calendar className="h-6 w-6" />
           月次レポート
         </h1>
+        <Button 
+          variant="outline" 
+          onClick={() => {
+            if (selectedUserId) {
+              fetchMonthlyReport()
+            }
+          }}
+          disabled={loading}
+          className="flex items-center gap-2"
+        >
+          {loading ? '読み込み中...' : '更新'}
+        </Button>
       </div>
 
       {/* フィルター */}
@@ -182,9 +195,16 @@ export function MonthlyReport({ onBack }: MonthlyReportProps) {
                 ))}
               </select>
             </div>
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <Button onClick={fetchMonthlyReport} disabled={loading || !selectedUserId}>
                 {loading ? '読み込み中...' : 'レポート生成'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={fetchMonthlyReport} 
+                disabled={loading || !selectedUserId}
+              >
+                更新
               </Button>
             </div>
           </div>
