@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csvData, {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="attendance-report-${year}-${month}-${userId}.csv"`
+          'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(`勤怠レポート_${year}年${month}月_${userId}.csv`)}`
         }
       })
     } catch (csvError) {

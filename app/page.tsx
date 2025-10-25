@@ -7,7 +7,7 @@ import { AttendanceButtons } from '@/components/AttendanceButtons'
 import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { HistoryView } from '@/components/HistoryView'
 import { AdminDashboard } from '@/components/AdminDashboard'
-import { MonthlyReport } from '@/components/MonthlyReport'
+import { Report } from '@/components/Report'
 import { TodayWorkTimeChart } from '@/components/TodayWorkTimeChart'
 import { WeeklyWorkTimeChart } from '@/components/WeeklyWorkTimeChart'
 import { BusyLevelChart } from '@/components/BusyLevelChart'
@@ -397,11 +397,11 @@ export default function Home() {
     )
   }
 
-  // 月次レポート表示の場合は月次レポートコンポーネントを表示
+  // レポート表示の場合はレポートコンポーネントを表示
   if (showMonthlyReport) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
-        <MonthlyReport 
+        <Report 
           onBack={() => setShowMonthlyReport(false)} 
         />
       </div>
@@ -849,7 +849,8 @@ export default function Home() {
             className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 transition-colors"
             size="sm"
           >
-            月次レポート
+            <Calendar className="h-4 w-4 mr-1" />
+            レポート
           </Button>
           {isAdmin(session?.user?.email) && (
             <Button 
