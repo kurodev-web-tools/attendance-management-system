@@ -74,14 +74,17 @@ export function BusyLevelMeter({
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>忙しさメーター</CardTitle>
+      <CardHeader className="bg-white border-b border-gray-200">
+        <CardTitle className="text-base font-semibold text-blue-900">忙しさメーター</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">忙しさレベル</span>
             <span className="text-lg font-bold">{level}%</span>
+          </div>
+          <div className="flex justify-center mb-2">
+            <span className="text-xl font-semibold">{getBusyLevelText(level)}</span>
           </div>
           <Slider
             value={[level]}
@@ -91,9 +94,6 @@ export function BusyLevelMeter({
             disabled={disabled}
             className="w-full"
           />
-          <div className="flex justify-center">
-            <span className="text-lg">{getBusyLevelText(level)}</span>
-          </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
               className="h-2 rounded-full transition-all duration-300"

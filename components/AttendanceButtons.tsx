@@ -29,8 +29,8 @@ export function AttendanceButtons({
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+      <CardHeader className="bg-white border-b border-gray-200">
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-blue-900">
           <Clock className="h-5 w-5" />
           勤怠記録
         </CardTitle>
