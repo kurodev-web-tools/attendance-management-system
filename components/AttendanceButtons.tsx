@@ -28,7 +28,7 @@ export function AttendanceButtons({
 }: AttendanceButtonsProps) {
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full">
       <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
         <CardTitle className="flex items-center gap-2 text-base font-semibold text-blue-900">
           <Clock className="h-5 w-5" />
