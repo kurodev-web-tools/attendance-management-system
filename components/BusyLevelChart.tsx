@@ -100,12 +100,12 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">忙しさレベル推移</CardTitle>
+      <Card className="h-full flex flex-col">
+        <CardHeader className="bg-white border-b border-gray-200">
+          <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center text-gray-500">
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">
             読み込み中...
           </div>
         </CardContent>
@@ -115,12 +115,12 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
 
   if (data.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">忙しさレベル推移</CardTitle>
+      <Card className="h-full flex flex-col">
+        <CardHeader className="bg-white border-b border-gray-200">
+          <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center text-gray-500">
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">
             忙しさレベルの記録がありません
           </div>
         </CardContent>
@@ -129,13 +129,12 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">忙しさレベル推移</CardTitle>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="bg-white border-b border-gray-200">
+        <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="flex-1">
+        <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -176,7 +175,6 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
       </CardContent>
     </Card>
   )

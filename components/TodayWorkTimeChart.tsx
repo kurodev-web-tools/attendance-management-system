@@ -42,12 +42,12 @@ export function TodayWorkTimeChart({ checkInTime, checkOutTime, currentTime }: T
 
   if (data.length === 0) {
     return (
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader className="bg-white border-b border-gray-200">
           <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間推移</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center text-gray-500">
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">
             出勤記録がありません
           </div>
         </CardContent>
@@ -62,21 +62,19 @@ export function TodayWorkTimeChart({ checkInTime, checkOutTime, currentTime }: T
     const minutes = currentMinutes % 60
     
     return (
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader className="bg-white border-b border-gray-200">
           <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間推移</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex flex-col items-center justify-center space-y-4">
-            <div className="text-3xl font-bold text-blue-900">
-              {hours}:{minutes.toString().padStart(2, '0')}
-            </div>
-            <div className="text-sm text-gray-600">
-              現在の勤務時間
-            </div>
-            <div className="text-xs text-gray-500">
-              まだデータが少ないためグラフは表示しません
-            </div>
+        <CardContent className="flex-1 flex flex-col items-center justify-center space-y-4">
+          <div className="text-3xl font-bold text-blue-900">
+            {hours}:{minutes.toString().padStart(2, '0')}
+          </div>
+          <div className="text-sm text-gray-600">
+            現在の勤務時間
+          </div>
+          <div className="text-xs text-gray-500">
+            まだデータが少ないためグラフは表示しません
           </div>
         </CardContent>
       </Card>
@@ -84,13 +82,12 @@ export function TodayWorkTimeChart({ checkInTime, checkOutTime, currentTime }: T
   }
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader className="bg-white border-b border-gray-200">
         <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間推移</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="flex-1">
+        <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -116,7 +113,6 @@ export function TodayWorkTimeChart({ checkInTime, checkOutTime, currentTime }: T
               />
             </LineChart>
           </ResponsiveContainer>
-        </div>
       </CardContent>
     </Card>
   )

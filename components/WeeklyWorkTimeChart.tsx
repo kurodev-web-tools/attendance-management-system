@@ -126,12 +126,12 @@ export function WeeklyWorkTimeChart({ userId }: WeeklyWorkTimeChartProps) {
 
   if (loading) {
     return (
-      <Card>
+      <Card className="h-full flex flex-col">
         <CardHeader>
-          <CardTitle className="text-sm font-medium">週間勤務時間推移</CardTitle>
+          <CardTitle className="text-base font-semibold text-blue-900">週間勤務時間推移</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-64 flex items-center justify-center text-gray-500">
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-gray-500">
             読み込み中...
           </div>
         </CardContent>
@@ -140,13 +140,12 @@ export function WeeklyWorkTimeChart({ userId }: WeeklyWorkTimeChartProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm font-medium">週間勤務時間推移</CardTitle>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="bg-white border-b border-gray-200">
+        <CardTitle className="text-base font-semibold text-blue-900">週間勤務時間推移</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
+      <CardContent className="flex-1">
+        <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -171,7 +170,6 @@ export function WeeklyWorkTimeChart({ userId }: WeeklyWorkTimeChartProps) {
               />
             </BarChart>
           </ResponsiveContainer>
-        </div>
       </CardContent>
     </Card>
   )

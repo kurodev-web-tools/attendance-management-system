@@ -657,12 +657,12 @@ export default function Home() {
 
             {/* 統計情報 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 border-2">
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 border-2 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-300">
               <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間</CardTitle>
               <Clock className="h-6 w-6 text-blue-700" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col justify-between">
               <div className="text-4xl font-bold text-blue-900">{workTimeCalculation.formattedNetWorkTime}</div>
               <p className="text-sm text-blue-700 mt-1">
                 実働時間
@@ -692,7 +692,7 @@ export default function Home() {
           </Card>
 
 
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">累積勤務時間</CardTitle>
               <div className="flex items-center gap-2">
@@ -776,7 +776,7 @@ export default function Home() {
                 <Clock className="h-5 w-5 text-blue-600" />
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col justify-between">
               <div className="text-2xl font-bold text-blue-900">{formatMinutesToTime(totalWorkMinutes)}</div>
               <p className="text-xs text-blue-700">
                 複数回出退勤合計
@@ -784,12 +784,12 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">勤務日数</CardTitle>
               <Calendar className="h-5 w-5 text-blue-600" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">月間</span>
@@ -806,12 +806,12 @@ export default function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">忙しさレベル</CardTitle>
               <TrendingUp className="h-5 w-5 text-blue-600" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-1 flex flex-col justify-between">
               <div className="text-2xl font-bold text-blue-900">{busyLevel}%</div>
               <p className="text-xs text-blue-700">
                 現在の状況
@@ -822,14 +822,20 @@ export default function Home() {
           </div>
 
           {/* 右カラム：グラフ表示 */}
-          <div className="xl:col-span-1 space-y-6">
-            <TodayWorkTimeChart 
-              checkInTime={checkInTime} 
-              checkOutTime={checkOutTime} 
-              currentTime={currentTime}
-            />
-            <WeeklyWorkTimeChart userId={session?.user?.email || ''} />
-            <BusyLevelChart userId={session?.user?.email || ''} />
+          <div className="xl:col-span-1 space-y-6 flex flex-col">
+            <div className="flex-1">
+              <TodayWorkTimeChart 
+                checkInTime={checkInTime} 
+                checkOutTime={checkOutTime} 
+                currentTime={currentTime}
+              />
+            </div>
+            <div className="flex-1">
+              <WeeklyWorkTimeChart userId={session?.user?.email || ''} />
+            </div>
+            <div className="flex-1">
+              <BusyLevelChart userId={session?.user?.email || ''} />
+            </div>
           </div>
         </div>
 
