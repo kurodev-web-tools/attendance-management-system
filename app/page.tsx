@@ -592,71 +592,75 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="container mx-auto px-2 py-8">
+      <div className="max-w-[95vw] mx-auto">
         {/* ヘッダー */}
-        <div className="text-center mb-8">
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-            <div className="order-2 sm:order-1"></div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 order-1 sm:order-2">
-              勤怠管理システム
-            </h1>
-            <div className="flex flex-wrap gap-2 order-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowSettings(true)}
-                className="flex items-center gap-2 text-sm"
-                size="sm"
-              >
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">設定</span>
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="flex items-center gap-2 text-sm"
-                size="sm"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">ログアウト</span>
-              </Button>
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+              <div className="order-2 sm:order-1"></div>
+              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent order-1 sm:order-2">
+                勤怠管理システム
+              </h1>
+              <div className="flex flex-wrap gap-2 order-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowSettings(true)}
+                  className="flex items-center gap-2 text-sm bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                  size="sm"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">設定</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  className="flex items-center gap-2 text-sm bg-white hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                  size="sm"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">ログアウト</span>
+                </Button>
+              </div>
             </div>
+            <p className="text-gray-700 text-center text-sm sm:text-base font-medium">
+              こんにちは、{session.user?.name}さん！今日も一日お疲れ様です
+            </p>
           </div>
-          <p className="text-gray-600 text-sm sm:text-base">
-            こんにちは、{session.user?.name}さん！今日も一日お疲れ様です
-          </p>
         </div>
 
-        {/* メインコンテンツ */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* 勤怠記録 */}
-          <AttendanceButtons
-            isCheckedIn={isCheckedIn}
-            checkInTime={checkInTime}
-            checkOutTime={checkOutTime}
-            onCheckIn={handleCheckIn}
-            onCheckOut={handleCheckOut}
-            disabled={loading}
-            recommendedStartTime={settings?.recommended_start_time}
-            recommendedEndTime={settings?.recommended_end_time}
-          />
+        {/* メインコンテンツ - 横並びレイアウト */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+          {/* 左カラム：勤怠記録・忙しさメーター・統計情報 */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* 勤怠記録と忙しさメーター */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <AttendanceButtons
+                isCheckedIn={isCheckedIn}
+                checkInTime={checkInTime}
+                checkOutTime={checkOutTime}
+                onCheckIn={handleCheckIn}
+                onCheckOut={handleCheckOut}
+                disabled={loading}
+                recommendedStartTime={settings?.recommended_start_time}
+                recommendedEndTime={settings?.recommended_end_time}
+              />
 
-          {/* 忙しさメーター */}
-          <BusyLevelMeter
-            initialLevel={busyLevel}
-            initialComment={busyComment}
-            onUpdate={handleBusyLevelUpdate}
-            busyLevelDescriptions={settings?.busy_level_descriptions}
-            busyLevelColors={settings?.busy_level_colors}
-          />
-        </div>
+              <BusyLevelMeter
+                initialLevel={busyLevel}
+                initialComment={busyComment}
+                onUpdate={handleBusyLevelUpdate}
+                busyLevelDescriptions={settings?.busy_level_descriptions}
+                busyLevelColors={settings?.busy_level_colors}
+              />
+            </div>
 
-        {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">今日の勤務時間</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+            {/* 統計情報 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-indigo-100 border-b border-blue-200">
+              <CardTitle className="text-sm font-semibold text-blue-900">今日の勤務時間</CardTitle>
+              <Clock className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{workTimeCalculation.formattedNetWorkTime}</div>
@@ -688,9 +692,9 @@ export default function Home() {
           </Card>
 
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">累積勤務時間</CardTitle>
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200">
+              <CardTitle className="text-sm font-semibold text-amber-900">累積勤務時間</CardTitle>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -769,21 +773,21 @@ export default function Home() {
                 >
                   更新
                 </Button>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock className="h-5 w-5 text-amber-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatMinutesToTime(totalWorkMinutes)}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-amber-900">{formatMinutesToTime(totalWorkMinutes)}</div>
+              <p className="text-xs text-amber-700">
                 複数回出退勤合計
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">勤務日数</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
+              <CardTitle className="text-sm font-semibold text-green-900">勤務日数</CardTitle>
+              <Calendar className="h-5 w-5 text-green-600" />
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -796,72 +800,74 @@ export default function Home() {
                   <span className="text-lg font-bold">{workDaysStats.yearlyWorkDays}日</span>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-green-700 mt-2">
                 出勤記録がある日数
               </p>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">忙しさレベル</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-purple-100 to-pink-100 border-b border-purple-200">
+              <CardTitle className="text-sm font-semibold text-purple-900">忙しさレベル</CardTitle>
+              <TrendingUp className="h-5 w-5 text-purple-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{busyLevel}%</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-2xl font-bold text-purple-900">{busyLevel}%</div>
+              <p className="text-xs text-purple-700">
                 現在の状況
               </p>
             </CardContent>
           </Card>
-        </div>
+            </div>
+          </div>
 
-        {/* グラフ表示 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <TodayWorkTimeChart 
-            checkInTime={checkInTime} 
-            checkOutTime={checkOutTime} 
-            currentTime={currentTime}
-          />
-          <WeeklyWorkTimeChart userId={session?.user?.email || ''} />
-          <div className="lg:col-span-2">
+          {/* 右カラム：グラフ表示 */}
+          <div className="xl:col-span-1 space-y-6">
+            <TodayWorkTimeChart 
+              checkInTime={checkInTime} 
+              checkOutTime={checkOutTime} 
+              currentTime={currentTime}
+            />
+            <WeeklyWorkTimeChart userId={session?.user?.email || ''} />
             <BusyLevelChart userId={session?.user?.email || ''} />
           </div>
         </div>
 
         {/* アクションボタン */}
-        <div className="flex flex-wrap justify-center gap-3">
+        <div className="flex flex-wrap justify-center gap-2">
           <Button 
             variant="outline" 
             onClick={() => setShowHistory(true)}
+            className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 transition-colors"
             size="sm"
           >
             履歴確認
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowMonthlyReport(true)}
+            className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 transition-colors"
+            size="sm"
+          >
+            月次レポート
           </Button>
           {isAdmin(session?.user?.email) && (
             <Button 
               variant="outline" 
               onClick={() => setShowAdminDashboard(true)} 
-              className="flex items-center gap-2"
+              className="bg-white hover:bg-blue-50 border-blue-300 hover:border-blue-400 text-blue-700 transition-colors"
               size="sm"
             >
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">管理者</span>
-              <span className="sm:hidden">管理</span>
+              <span className="hidden sm:inline ml-1">管理者</span>
+              <span className="sm:hidden ml-1">管理</span>
             </Button>
           )}
-          <Button 
-            variant="outline" 
-            onClick={() => setShowMonthlyReport(true)}
-            size="sm"
-          >
-            月次レポート
-          </Button>
           {checkOutTime && (
             <Button 
               variant="outline" 
               onClick={resetForNewDay}
-              className="bg-blue-50 hover:bg-blue-100"
+              className="bg-amber-50 hover:bg-amber-100 border-amber-300 hover:border-amber-400 text-amber-700 transition-colors"
               size="sm"
             >
               リセット
