@@ -596,10 +596,10 @@ export default function Home() {
       <div className="max-w-[95vw] mx-auto">
         {/* ヘッダー */}
         <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
               <div className="order-2 sm:order-1"></div>
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 bg-clip-text text-transparent order-1 sm:order-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-blue-900 order-1 sm:order-2">
                 勤怠管理システム
               </h1>
               <div className="flex flex-wrap gap-2 order-3">
@@ -657,14 +657,14 @@ export default function Home() {
 
             {/* 統計情報 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-indigo-100 border-b border-blue-200">
-              <CardTitle className="text-sm font-semibold text-blue-900">今日の勤務時間</CardTitle>
-              <Clock className="h-5 w-5 text-blue-600" />
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 border-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-300">
+              <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間</CardTitle>
+              <Clock className="h-6 w-6 text-blue-700" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{workTimeCalculation.formattedNetWorkTime}</div>
-              <p className="text-xs text-muted-foreground">
+              <div className="text-4xl font-bold text-blue-900">{workTimeCalculation.formattedNetWorkTime}</div>
+              <p className="text-sm text-blue-700 mt-1">
                 実働時間
               </p>
               {settings?.standard_work_hours && (
@@ -692,9 +692,9 @@ export default function Home() {
           </Card>
 
 
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-amber-100 to-orange-100 border-b border-amber-200">
-              <CardTitle className="text-sm font-semibold text-amber-900">累積勤務時間</CardTitle>
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
+              <CardTitle className="text-sm font-semibold text-blue-900">累積勤務時間</CardTitle>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -773,21 +773,21 @@ export default function Home() {
                 >
                   更新
                 </Button>
-                <Clock className="h-5 w-5 text-amber-600" />
+                <Clock className="h-5 w-5 text-blue-600" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-amber-900">{formatMinutesToTime(totalWorkMinutes)}</div>
-              <p className="text-xs text-amber-700">
+              <div className="text-2xl font-bold text-blue-900">{formatMinutesToTime(totalWorkMinutes)}</div>
+              <p className="text-xs text-blue-700">
                 複数回出退勤合計
               </p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
-              <CardTitle className="text-sm font-semibold text-green-900">勤務日数</CardTitle>
-              <Calendar className="h-5 w-5 text-green-600" />
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
+              <CardTitle className="text-sm font-semibold text-blue-900">勤務日数</CardTitle>
+              <Calendar className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -800,20 +800,20 @@ export default function Home() {
                   <span className="text-lg font-bold">{workDaysStats.yearlyWorkDays}日</span>
                 </div>
               </div>
-              <p className="text-xs text-green-700 mt-2">
+              <p className="text-xs text-blue-700 mt-2">
                 出勤記録がある日数
               </p>
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-purple-100 to-pink-100 border-b border-purple-200">
-              <CardTitle className="text-sm font-semibold text-purple-900">忙しさレベル</CardTitle>
-              <TrendingUp className="h-5 w-5 text-purple-600" />
+          <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
+              <CardTitle className="text-sm font-semibold text-blue-900">忙しさレベル</CardTitle>
+              <TrendingUp className="h-5 w-5 text-blue-600" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-900">{busyLevel}%</div>
-              <p className="text-xs text-purple-700">
+              <div className="text-2xl font-bold text-blue-900">{busyLevel}%</div>
+              <p className="text-xs text-blue-700">
                 現在の状況
               </p>
             </CardContent>
