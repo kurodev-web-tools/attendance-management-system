@@ -74,10 +74,10 @@ export function BusyLevelMeter({
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="bg-white border-b border-gray-200">
+      <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
         <CardTitle className="text-base font-semibold text-blue-900">忙しさメーター</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="pt-6 space-y-4">
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">忙しさレベル</span>

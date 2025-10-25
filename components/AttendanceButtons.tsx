@@ -29,13 +29,13 @@ export function AttendanceButtons({
 
   return (
     <Card className="w-full max-w-md">
-      <CardHeader className="bg-white border-b border-gray-200">
+      <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
         <CardTitle className="flex items-center gap-2 text-base font-semibold text-blue-900">
           <Clock className="h-5 w-5" />
           勤怠記録
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="pt-6 space-y-4">
         {/* 推奨時刻表示 */}
         {(recommendedStartTime || recommendedEndTime) && (
           <div className="space-y-1 p-3 bg-blue-50 rounded-lg">
@@ -71,7 +71,7 @@ export function AttendanceButtons({
             className="h-12"
           >
             <LogOut className="h-4 w-4 mr-2" />
-            休憩・退勤
+            休憩/退勤
           </Button>
         </div>
 

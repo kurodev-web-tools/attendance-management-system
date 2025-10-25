@@ -101,10 +101,10 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
   if (loading) {
     return (
       <Card className="h-full flex flex-col">
-        <CardHeader className="bg-white border-b border-gray-200">
+        <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
           <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex items-center justify-center">
+        <CardContent className="pt-6 flex-1 flex items-center justify-center">
           <div className="text-gray-500">
             読み込み中...
           </div>
@@ -116,10 +116,10 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
   if (data.length === 0) {
     return (
       <Card className="h-full flex flex-col">
-        <CardHeader className="bg-white border-b border-gray-200">
+        <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
           <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
         </CardHeader>
-        <CardContent className="flex-1 flex items-center justify-center">
+        <CardContent className="pt-6 flex-1 flex items-center justify-center">
           <div className="text-gray-500">
             忙しさレベルの記録がありません
           </div>
@@ -130,10 +130,10 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="bg-white border-b border-gray-200">
+      <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
         <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1">
+      <CardContent className="pt-6 flex-1">
         <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" />

@@ -656,13 +656,13 @@ export default function Home() {
             </div>
 
             {/* 統計情報 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 border-2 h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-300">
               <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間</CardTitle>
               <Clock className="h-6 w-6 text-blue-700" />
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-between">
+            <CardContent className="pt-6 flex-1 flex flex-col justify-between">
               <div className="text-4xl font-bold text-blue-900">{workTimeCalculation.formattedNetWorkTime}</div>
               <p className="text-sm text-blue-700 mt-1">
                 実働時間
@@ -693,90 +693,87 @@ export default function Home() {
 
 
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">累積勤務時間</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    // 累積勤務時間を再計算
-                    const calculateTotalWorkTime = async () => {
-                      if (!session?.user?.email) return
+              <button
+                className="flex items-center justify-center p-1 rounded hover:bg-blue-50 transition-colors"
+                onClick={() => {
+                  // 累積勤務時間を再計算
+                  const calculateTotalWorkTime = async () => {
+                    if (!session?.user?.email) return
+                    
+                    try {
+                      const { data: allRecords, error } = await supabase
+                        .from('attendance_records')
+                        .select('*')
+                        .eq('user_id', session.user.email)
+                        .order('created_at', { ascending: true })
                       
-                      try {
-                        const { data: allRecords, error } = await supabase
-                          .from('attendance_records')
-                          .select('*')
-                          .eq('user_id', session.user.email)
-                          .order('created_at', { ascending: true })
+                      if (error) throw error
+                      
+                      let totalMinutes = 0
+                      
+                      // 出勤・退勤ペアを正しく処理（日付ごとにグループ化）
+                      const recordsByDate = allRecords.reduce((groups, record) => {
+                        const date = record.date
+                        if (!groups[date]) {
+                          groups[date] = []
+                        }
+                        groups[date].push(record)
+                        return groups
+                      }, {} as Record<string, typeof allRecords>)
+                      
+                      // 各日の勤務時間を計算
+                      Object.values(recordsByDate).forEach(dayRecords => {
+                        const records = dayRecords as AttendanceRecord[]
+                        // 作成日時順でソート
+                        const sortedRecords = records.sort((a, b) => 
+                          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                        )
                         
-                        if (error) throw error
+                        // 重複を除去してユニークな出退勤ペアを構築
+                        const uniqueRecords = new Map<string, AttendanceRecord>()
                         
-                        let totalMinutes = 0
-                        
-                        // 出勤・退勤ペアを正しく処理（日付ごとにグループ化）
-                        const recordsByDate = allRecords.reduce((groups, record) => {
-                          const date = record.date
-                          if (!groups[date]) {
-                            groups[date] = []
+                        sortedRecords.forEach((record) => {
+                          if (record.check_in_time) {
+                            const key = `${record.check_in_time}`
+                            if (!uniqueRecords.has(key) || !uniqueRecords.get(key)?.check_out_time) {
+                              uniqueRecords.set(key, record)
+                            }
                           }
-                          groups[date].push(record)
-                          return groups
-                        }, {} as Record<string, typeof allRecords>)
-                        
-                        // 各日の勤務時間を計算
-                        Object.values(recordsByDate).forEach(dayRecords => {
-                          const records = dayRecords as AttendanceRecord[]
-                          // 作成日時順でソート
-                          const sortedRecords = records.sort((a, b) => 
-                            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                          )
-                          
-                          // 重複を除去してユニークな出退勤ペアを構築
-                          const uniqueRecords = new Map<string, AttendanceRecord>()
-                          
-                          sortedRecords.forEach((record) => {
-                            if (record.check_in_time) {
-                              const key = `${record.check_in_time}`
-                              if (!uniqueRecords.has(key) || !uniqueRecords.get(key)?.check_out_time) {
-                                uniqueRecords.set(key, record)
-                              }
-                            }
-                          })
-                          
-                          // ユニークなレコードから勤務時間を計算
-                          uniqueRecords.forEach((record) => {
-                            if (record.check_in_time && record.check_out_time) {
-                              // 完了したペアの場合
-                              const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
-                              totalMinutes += minutes
-                            } else if (record.check_in_time && !record.check_out_time) {
-                              // 現在勤務中の場合
-                              const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
-                              totalMinutes += minutes
-                            }
-                          })
                         })
                         
-                        setTotalWorkMinutes(totalMinutes)
-                        console.log('累積勤務時間を再計算:', totalMinutes)
-                        // refreshTriggerを更新してuseEffectをトリガー
-                        setRefreshTrigger(prev => prev + 1)
-                      } catch (error) {
-                        console.error('累積勤務時間の再計算エラー:', error)
-                      }
+                        // ユニークなレコードから勤務時間を計算
+                        uniqueRecords.forEach((record) => {
+                          if (record.check_in_time && record.check_out_time) {
+                            // 完了したペアの場合
+                            const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
+                            totalMinutes += minutes
+                          } else if (record.check_in_time && !record.check_out_time) {
+                            // 現在勤務中の場合
+                            const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+                            totalMinutes += minutes
+                          }
+                        })
+                      })
+                      
+                      setTotalWorkMinutes(totalMinutes)
+                      console.log('累積勤務時間を再計算:', totalMinutes)
+                      // refreshTriggerを更新してuseEffectをトリガー
+                      setRefreshTrigger(prev => prev + 1)
+                    } catch (error) {
+                      console.error('累積勤務時間の再計算エラー:', error)
                     }
-                    
-                    calculateTotalWorkTime()
-                  }}
-                >
-                  更新
-                </Button>
+                  }
+                  
+                  calculateTotalWorkTime()
+                }}
+                title="累積勤務時間を更新"
+              >
                 <Clock className="h-5 w-5 text-blue-600" />
-              </div>
+              </button>
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-between">
+            <CardContent className="pt-6 flex-1 flex flex-col justify-between">
               <div className="text-2xl font-bold text-blue-900">{formatMinutesToTime(totalWorkMinutes)}</div>
               <p className="text-xs text-blue-700">
                 複数回出退勤合計
@@ -785,11 +782,11 @@ export default function Home() {
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">勤務日数</CardTitle>
               <Calendar className="h-5 w-5 text-blue-600" />
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-between">
+            <CardContent className="pt-6 flex-1 flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">月間</span>
@@ -807,11 +804,11 @@ export default function Home() {
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">忙しさレベル</CardTitle>
               <TrendingUp className="h-5 w-5 text-blue-600" />
             </CardHeader>
-            <CardContent className="flex-1 flex flex-col justify-between">
+            <CardContent className="pt-6 flex-1 flex flex-col justify-between">
               <div className="text-2xl font-bold text-blue-900">{busyLevel}%</div>
               <p className="text-xs text-blue-700">
                 現在の状況
