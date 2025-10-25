@@ -8,6 +8,9 @@ import { BusyLevelMeter } from '@/components/BusyLevelMeter'
 import { HistoryView } from '@/components/HistoryView'
 import { AdminDashboard } from '@/components/AdminDashboard'
 import { MonthlyReport } from '@/components/MonthlyReport'
+import { TodayWorkTimeChart } from '@/components/TodayWorkTimeChart'
+import { WeeklyWorkTimeChart } from '@/components/WeeklyWorkTimeChart'
+import { BusyLevelChart } from '@/components/BusyLevelChart'
 import { formatTime } from '@/lib/timeUtils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,8 +21,9 @@ import { supabase, AttendanceRecord } from '@/lib/supabase'
 import { calculateTodayWorkTime, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
 import { isAdmin } from '@/lib/admin'
 import { useUserSettings } from '@/hooks/useUserSettings'
-// import { useLongWorkWarning } from '@/hooks/useLongWorkWarning'
-// import { useOvertimeNotification } from '@/hooks/useOvertimeNotification'
+import { useLongWorkWarning } from '@/hooks/useLongWorkWarning'
+import { useOvertimeNotification } from '@/hooks/useOvertimeNotification'
+import { useNotificationReminders } from '@/hooks/useNotificationReminders'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -27,8 +31,9 @@ export default function Home() {
   const [isCheckedIn, setIsCheckedIn] = useState(false)
   const [checkInTime, setCheckInTime] = useState<string>()
   const [checkOutTime, setCheckOutTime] = useState<string>()
-  // const { setLongWorkWarning } = useLongWorkWarning(settings, checkInTime, isCheckedIn)
-  // const { setOvertimeNotification } = useOvertimeNotification(settings, checkInTime, isCheckedIn)
+  useLongWorkWarning(settings, checkInTime, isCheckedIn)
+  useOvertimeNotification(settings, checkInTime, isCheckedIn)
+  useNotificationReminders(settings)
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
@@ -807,6 +812,19 @@ export default function Home() {
               </p>
             </CardContent>
           </Card>
+        </div>
+
+        {/* グラフ表示 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <TodayWorkTimeChart 
+            checkInTime={checkInTime} 
+            checkOutTime={checkOutTime} 
+            currentTime={currentTime}
+          />
+          <WeeklyWorkTimeChart userId={session?.user?.email || ''} />
+          <div className="lg:col-span-2">
+            <BusyLevelChart userId={session?.user?.email || ''} />
+          </div>
         </div>
 
         {/* アクションボタン */}
