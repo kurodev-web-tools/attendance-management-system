@@ -408,6 +408,29 @@ export default function Home() {
     )
   }
 
+  // 管理者ダッシュボード表示の場合は管理者ダッシュボードコンポーネントを表示
+  if (showAdminDashboard) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <AdminDashboard 
+          onBack={() => setShowAdminDashboard(false)}
+        />
+      </div>
+    )
+  }
+
+  // 設定画面表示の場合は設定画面コンポーネントを表示
+  if (showSettings) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4">
+        <SettingsView 
+          userId={session?.user?.email || ''} 
+          onBack={() => setShowSettings(false)} 
+        />
+      </div>
+    )
+  }
+
   // 出勤処理
   const handleCheckIn = async () => {
     if (!session?.user?.email) return
@@ -598,7 +621,44 @@ export default function Home() {
         <div className="mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-              <div className="order-2 sm:order-1"></div>
+              <div className="order-2 sm:order-1 flex flex-wrap gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowHistory(true)}
+                  className="text-sm hover:bg-blue-100"
+                >
+                  履歴
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowMonthlyReport(true)}
+                  className="text-sm hover:bg-blue-100"
+                >
+                  レポート
+                </Button>
+                {isAdmin(session?.user?.email) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowAdminDashboard(true)}
+                    className="text-sm hover:bg-blue-100"
+                  >
+                    管理者
+                  </Button>
+                )}
+                {checkOutTime && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={resetForNewDay}
+                    className="text-sm text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+                  >
+                    リセット
+                  </Button>
+                )}
+              </div>
               <h1 className="text-2xl sm:text-3xl font-bold text-blue-900 order-1 sm:order-2">
                 勤怠管理システム
               </h1>
@@ -835,83 +895,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        {/* アクションボタン */}
-        <div className="flex flex-wrap justify-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowHistory(true)}
-            className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 transition-colors"
-            size="sm"
-          >
-            履歴確認
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={() => setShowMonthlyReport(true)}
-            className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 transition-colors"
-            size="sm"
-          >
-            <Calendar className="h-4 w-4 mr-1" />
-            レポート
-          </Button>
-          {isAdmin(session?.user?.email) && (
-            <Button 
-              variant="outline" 
-              onClick={() => setShowAdminDashboard(true)} 
-              className="bg-white hover:bg-blue-50 border-blue-300 hover:border-blue-400 text-blue-700 transition-colors"
-              size="sm"
-            >
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1">管理者</span>
-              <span className="sm:hidden ml-1">管理</span>
-            </Button>
-          )}
-          {checkOutTime && (
-            <Button 
-              variant="outline" 
-              onClick={resetForNewDay}
-              className="bg-amber-50 hover:bg-amber-100 border-amber-300 hover:border-amber-400 text-amber-700 transition-colors"
-              size="sm"
-            >
-              リセット
-            </Button>
-          )}
-        </div>
       </div>
-
-      {/* 履歴表示 */}
-      {showHistory && (
-        <HistoryView 
-          userId={session?.user?.email || ''} 
-          onBack={() => setShowHistory(false)}
-          onUpdate={() => {
-            // 履歴データの再取得をトリガー
-            console.log('履歴データの再取得をトリガー')
-            // 累積勤務時間の再計算をトリガー
-            setRefreshTrigger(prev => prev + 1)
-          }}
-        />
-      )}
-
-      {/* 管理者ダッシュボード */}
-      {showAdminDashboard && (
-        <AdminDashboard 
-          onBack={() => {
-            setShowAdminDashboard(false)
-            // 管理者ダッシュボードから戻る時に累積勤務時間を再計算
-            setRefreshTrigger(prev => prev + 1)
-          }} 
-        />
-      )}
-
-      {/* 設定画面 */}
-      {showSettings && (
-        <SettingsView 
-          userId={session?.user?.email || ''} 
-          onBack={() => setShowSettings(false)} 
-        />
-      )}
     </div>
   )
 }
