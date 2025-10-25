@@ -14,6 +14,7 @@ import { BusyLevelChart } from '@/components/BusyLevelChart'
 import { formatTime } from '@/lib/timeUtils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Clock, TrendingUp, LogOut, Settings, Calendar } from 'lucide-react'
 import { SettingsView } from '@/components/SettingsView'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
@@ -615,8 +616,9 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto px-2 py-8">
-      <div className="max-w-[95vw] mx-auto">
+    <TooltipProvider>
+      <div className="container mx-auto px-2 py-8">
+        <div className="max-w-[95vw] mx-auto">
         {/* ヘッダー */}
         <div className="mb-6 sm:mb-8">
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 sm:p-6 shadow-sm">
@@ -758,9 +760,11 @@ export default function Home() {
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200">
               <CardTitle className="text-sm font-semibold text-blue-900">累積勤務時間</CardTitle>
-              <button
-                className="flex items-center justify-center p-1 rounded hover:bg-blue-50 transition-colors"
-                onClick={() => {
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    className="flex items-center justify-center p-1 rounded hover:bg-blue-50 transition-colors"
+                    onClick={() => {
                   // 累積勤務時間を再計算
                   const calculateTotalWorkTime = async () => {
                     if (!session?.user?.email) return
@@ -834,7 +838,12 @@ export default function Home() {
                 title="累積勤務時間を更新"
               >
                 <Clock className="h-5 w-5 text-blue-600" />
-              </button>
+                </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>累積勤務時間を更新</p>
+                </TooltipContent>
+              </Tooltip>
             </CardHeader>
             <CardContent className="pt-6 flex-1 flex flex-col justify-between">
               <div className="text-2xl font-bold text-blue-900">{formatMinutesToTime(totalWorkMinutes)}</div>
@@ -898,7 +907,8 @@ export default function Home() {
             </div>
           </div>
         </div>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }
