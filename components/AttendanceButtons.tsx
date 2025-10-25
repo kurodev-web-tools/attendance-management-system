@@ -12,6 +12,8 @@ interface AttendanceButtonsProps {
   onCheckIn: () => void
   onCheckOut: () => void
   disabled?: boolean
+  recommendedStartTime?: string
+  recommendedEndTime?: string
 }
 
 export function AttendanceButtons({
@@ -20,7 +22,9 @@ export function AttendanceButtons({
   checkOutTime,
   onCheckIn,
   onCheckOut,
-  disabled = false
+  disabled = false,
+  recommendedStartTime,
+  recommendedEndTime
 }: AttendanceButtonsProps) {
 
   return (
@@ -32,6 +36,23 @@ export function AttendanceButtons({
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* 推奨時刻表示 */}
+        {(recommendedStartTime || recommendedEndTime) && (
+          <div className="space-y-1 p-3 bg-blue-50 rounded-lg">
+            <div className="text-xs text-blue-600 font-medium">推奨時刻</div>
+            {recommendedStartTime && (
+              <div className="text-sm text-blue-700">
+                推奨出勤: {recommendedStartTime}
+              </div>
+            )}
+            {recommendedEndTime && (
+              <div className="text-sm text-blue-700">
+                推奨退勤: {recommendedEndTime}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 出勤・退勤ボタン */}
         <div className="grid grid-cols-2 gap-4">
           <Button

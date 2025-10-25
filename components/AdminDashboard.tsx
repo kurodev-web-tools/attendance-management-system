@@ -341,7 +341,7 @@ export function AdminDashboard({ onBack }: AdminDashboardProps) {
                   new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
                 )
                 
-                sortedRecords.forEach((record, index) => {
+                sortedRecords.forEach((record) => {
                   // 同じユーザー、同じ日付、同じ出勤時刻のレコードを重複として検出
                   const key = `${record.user_id}-${record.date}-${record.check_in_time}`
                   if (seen.has(key)) {

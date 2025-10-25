@@ -11,13 +11,17 @@ interface BusyLevelMeterProps {
   initialComment?: string
   onUpdate: (level: number, comment: string) => void
   disabled?: boolean
+  busyLevelDescriptions?: { [key: number]: string }
+  busyLevelColors?: { [key: number]: string }
 }
 
 export function BusyLevelMeter({ 
   initialLevel = 50, 
   initialComment = '',
   onUpdate,
-  disabled = false 
+  disabled = false,
+  busyLevelDescriptions,
+  busyLevelColors
 }: BusyLevelMeterProps) {
   const [level, setLevel] = useState(initialLevel)
   const [comment, setComment] = useState(initialComment)
@@ -31,6 +35,17 @@ export function BusyLevelMeter({
   }
 
   const getBusyLevelText = (level: number) => {
+    // 設定の説明文がある場合はそれを使用
+    if (busyLevelDescriptions) {
+      // 最も近いレベルの説明文を取得
+      const levels = Object.keys(busyLevelDescriptions).map(Number).sort((a, b) => a - b)
+      const closestLevel = levels.reduce((prev, curr) => 
+        Math.abs(curr - level) < Math.abs(prev - level) ? curr : prev
+      )
+      return busyLevelDescriptions[closestLevel] || '普通'
+    }
+    
+    // デフォルトの説明文
     if (level <= 20) return '😊 余裕がある'
     if (level <= 40) return '😐 少し忙しい'
     if (level <= 60) return '😅 普通'
@@ -39,6 +54,17 @@ export function BusyLevelMeter({
   }
 
   const getBusyLevelColor = (level: number) => {
+    // 設定の色がある場合はそれを使用
+    if (busyLevelColors) {
+      // 最も近いレベルの色を取得
+      const levels = Object.keys(busyLevelColors).map(Number).sort((a, b) => a - b)
+      const closestLevel = levels.reduce((prev, curr) => 
+        Math.abs(curr - level) < Math.abs(prev - level) ? curr : prev
+      )
+      return busyLevelColors[closestLevel] || '#eab308'
+    }
+    
+    // デフォルトの色
     if (level <= 20) return 'bg-green-500'
     if (level <= 40) return 'bg-yellow-400'
     if (level <= 60) return 'bg-yellow-500'
@@ -70,8 +96,13 @@ export function BusyLevelMeter({
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className={`h-2 rounded-full transition-all duration-300 ${getBusyLevelColor(level)}`}
-              style={{ width: `${level}%` }}
+              className="h-2 rounded-full transition-all duration-300"
+              style={{ 
+                width: `${level}%`,
+                backgroundColor: busyLevelColors ? 
+                  getBusyLevelColor(level) : 
+                  undefined
+              }}
             />
           </div>
         </div>

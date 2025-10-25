@@ -116,7 +116,8 @@ export function HistoryView({ userId, onBack }: HistoryViewProps) {
     // 編集完了を監視
     const interval = setInterval(handleUpdate, 3000) // 3秒ごとにチェック
     return () => clearInterval(interval)
-  }, [currentDate, viewMode])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate, viewMode, fetchHistory])
 
   // 連続勤務日数を計算
   const calculateConsecutiveWorkDays = (targetDate: string) => {

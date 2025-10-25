@@ -5,22 +5,27 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
-    const year = parseInt(searchParams.get('year') || '')
-    const month = parseInt(searchParams.get('month') || '')
+    const year = parseInt(searchParams.get('year') || '2025')
+    const month = parseInt(searchParams.get('month') || '10')
 
-    if (!userId || !year || !month) {
+    if (!userId) {
       return NextResponse.json(
-        { error: '必要なパラメータが不足しています' },
+        { error: 'ユーザーIDが必要です' },
         { status: 400 }
       )
     }
 
-    // 認証チェックはクライアントサイドで行うため、ここではスキップ
-    // TODO: 本番環境では適切な認証チェックを実装
-    console.log('月次レポートAPI - リクエスト:', { userId, year, month })
+    console.log('月次レポート取得リクエスト:', { userId, year, month })
+
+    const report = await generateMonthlyReport(userId, year, month)
     
-    const reportData = await generateMonthlyReport(userId, year, month)
-    return NextResponse.json(reportData)
+    console.log('月次レポート生成完了:', { 
+      totalWorkMinutes: report.totalWorkMinutes,
+      workDays: report.workDays,
+      dailyDataCount: report.dailyData.length
+    })
+
+    return NextResponse.json(report)
   } catch (error) {
     console.error('月次レポート取得エラー:', error)
     return NextResponse.json(

@@ -11,17 +11,24 @@ import { MonthlyReport } from '@/components/MonthlyReport'
 import { formatTime } from '@/lib/timeUtils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Users, Clock, TrendingUp, LogOut, Settings } from 'lucide-react'
+import { Clock, TrendingUp, LogOut, Settings, Calendar } from 'lucide-react'
+import { SettingsView } from '@/components/SettingsView'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
 import { supabase, AttendanceRecord } from '@/lib/supabase'
 import { calculateTodayWorkTime, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
 import { isAdmin } from '@/lib/admin'
+import { useUserSettings } from '@/hooks/useUserSettings'
+// import { useLongWorkWarning } from '@/hooks/useLongWorkWarning'
+// import { useOvertimeNotification } from '@/hooks/useOvertimeNotification'
 
 export default function Home() {
   const { data: session, status } = useSession()
+  const { settings } = useUserSettings(session?.user?.email || '')
   const [isCheckedIn, setIsCheckedIn] = useState(false)
   const [checkInTime, setCheckInTime] = useState<string>()
   const [checkOutTime, setCheckOutTime] = useState<string>()
+  // const { setLongWorkWarning } = useLongWorkWarning(settings, checkInTime, isCheckedIn)
+  // const { setOvertimeNotification } = useOvertimeNotification(settings, checkInTime, isCheckedIn)
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
@@ -29,6 +36,7 @@ export default function Home() {
   const [showHistory, setShowHistory] = useState(false)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
   const [showMonthlyReport, setShowMonthlyReport] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
 
   // 今日の日付を取得（日本時間基準）
   const today = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
@@ -47,9 +55,13 @@ export default function Home() {
   // 累積勤務時間を計算（複数回の出退勤を考慮）
   const [totalWorkMinutes, setTotalWorkMinutes] = useState(0)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [workDaysStats, setWorkDaysStats] = useState({
+    monthlyWorkDays: 0,
+    yearlyWorkDays: 0,
+  })
   
   useEffect(() => {
-    // 累積勤務時間を計算
+    // 累積勤務時間と勤務日数を計算
     const calculateTotalWorkTime = async () => {
       if (session?.user?.email) {
         try {
@@ -138,9 +150,87 @@ export default function Home() {
             
             setTotalWorkMinutes(totalMinutes)
             console.log('最終累積勤務時間:', totalMinutes)
+            
+            // 勤務日数を計算
+            await calculateWorkDays()
           }
         } catch (error) {
           console.error('累積勤務時間の計算エラー:', error)
+        }
+      }
+    }
+
+    // 勤務日数を計算する関数
+    const calculateWorkDays = async () => {
+      if (session?.user?.email) {
+        try {
+          const currentDate = new Date()
+          const currentYear = currentDate.getFullYear()
+          const currentMonth = currentDate.getMonth() + 1
+          const currentDay = currentDate.getDate()
+          
+          // 今月の開始日と終了日を計算
+          const monthStart = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
+          const monthEnd = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`
+          
+          // 今年の開始日を計算
+          const yearStart = `${currentYear}-01-01`
+          const yearEnd = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`
+          
+          // 今月の勤怠記録を取得
+          const { data: monthlyRecords } = await supabase
+            .from('attendance_records')
+            .select('date, check_in_time, check_out_time')
+            .eq('user_id', session.user.email)
+            .gte('date', monthStart)
+            .lte('date', monthEnd)
+            .not('check_in_time', 'is', null)
+          
+          // 今年の勤怠記録を取得
+          const { data: yearlyRecords } = await supabase
+            .from('attendance_records')
+            .select('date, check_in_time, check_out_time')
+            .eq('user_id', session.user.email)
+            .gte('date', yearStart)
+            .lte('date', yearEnd)
+            .not('check_in_time', 'is', null)
+          
+          if (monthlyRecords && yearlyRecords) {
+            // 月間勤務日数を計算
+            const monthlyWorkDaysByDate = new Set<string>()
+            monthlyRecords.forEach(record => {
+              if (record.check_in_time) {
+                monthlyWorkDaysByDate.add(record.date)
+              }
+            })
+            
+            // 年間勤務日数を計算
+            const yearlyWorkDaysByDate = new Set<string>()
+            yearlyRecords.forEach(record => {
+              if (record.check_in_time) {
+                yearlyWorkDaysByDate.add(record.date)
+              }
+            })
+            
+            const monthlyWorkDays = monthlyWorkDaysByDate.size
+            const yearlyWorkDays = yearlyWorkDaysByDate.size
+            
+            setWorkDaysStats({
+              monthlyWorkDays,
+              yearlyWorkDays
+            })
+            
+            console.log('勤務日数計算完了:', {
+              monthlyWorkDays,
+              yearlyWorkDays,
+              monthStart,
+              monthEnd,
+              yearStart,
+              yearEnd
+            })
+          }
+        } catch (error) {
+          console.error('勤務日数の計算エラー:', error)
         }
       }
     }
@@ -506,14 +596,24 @@ export default function Home() {
             <h1 className="text-3xl font-bold text-gray-900">
               勤怠管理システム
             </h1>
-            <Button
-              variant="outline"
-              onClick={() => signOut({ callbackUrl: '/login' })}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              ログアウト
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                設定
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => signOut({ callbackUrl: '/login' })}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                ログアウト
+              </Button>
+            </div>
           </div>
           <p className="text-gray-600">
             こんにちは、{session.user?.name}さん！今日も一日お疲れ様です
@@ -530,6 +630,8 @@ export default function Home() {
             onCheckIn={handleCheckIn}
             onCheckOut={handleCheckOut}
             disabled={loading}
+            recommendedStartTime={settings?.recommended_start_time}
+            recommendedEndTime={settings?.recommended_end_time}
           />
 
           {/* 忙しさメーター */}
@@ -537,11 +639,13 @@ export default function Home() {
             initialLevel={busyLevel}
             initialComment={busyComment}
             onUpdate={handleBusyLevelUpdate}
+            busyLevelDescriptions={settings?.busy_level_descriptions}
+            busyLevelColors={settings?.busy_level_colors}
           />
         </div>
 
         {/* 統計情報 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">今日の勤務時間</CardTitle>
@@ -552,6 +656,27 @@ export default function Home() {
               <p className="text-xs text-muted-foreground">
                 実働時間
               </p>
+              {settings?.standard_work_hours && (
+                <div className="mt-2 space-y-1 text-xs text-gray-600">
+                  <div>
+                    標準勤務時間: {settings.standard_work_hours}時間
+                    {workTimeCalculation.totalWorkMinutes > 0 && (
+                      <span className={`ml-2 ${
+                        workTimeCalculation.totalWorkMinutes >= settings.standard_work_hours * 60 
+                          ? 'text-green-600' 
+                          : 'text-orange-600'
+                      }`}>
+                        ({workTimeCalculation.totalWorkMinutes >= settings.standard_work_hours * 60 ? '達成' : '未達成'})
+                      </span>
+                    )}
+                  </div>
+                  {settings.break_duration > 0 && (
+                    <div>
+                      休憩時間: {settings.break_duration}分
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -648,6 +773,27 @@ export default function Home() {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">勤務日数</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">月間</span>
+                  <span className="text-lg font-bold">{workDaysStats.monthlyWorkDays}日</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">年間</span>
+                  <span className="text-lg font-bold">{workDaysStats.yearlyWorkDays}日</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                出勤記録がある日数
+              </p>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -658,19 +804,6 @@ export default function Home() {
               <div className="text-2xl font-bold">{busyLevel}%</div>
               <p className="text-xs text-muted-foreground">
                 現在の状況
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">出勤日数</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">22日</div>
-              <p className="text-xs text-muted-foreground">
-                今月の出勤日数
               </p>
             </CardContent>
           </Card>
@@ -689,9 +822,6 @@ export default function Home() {
           )}
           <Button variant="outline" onClick={() => setShowMonthlyReport(true)}>
             月次レポート
-          </Button>
-          <Button variant="outline">
-            設定
           </Button>
           {checkOutTime && (
             <Button 
@@ -727,6 +857,14 @@ export default function Home() {
             // 管理者ダッシュボードから戻る時に累積勤務時間を再計算
             setRefreshTrigger(prev => prev + 1)
           }} 
+        />
+      )}
+
+      {/* 設定画面 */}
+      {showSettings && (
+        <SettingsView 
+          userId={session?.user?.email || ''} 
+          onBack={() => setShowSettings(false)} 
         />
       )}
     </div>
