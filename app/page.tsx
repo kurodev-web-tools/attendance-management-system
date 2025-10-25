@@ -618,24 +618,26 @@ export default function Home() {
     <div className="container mx-auto px-2 py-8">
       <div className="max-w-[95vw] mx-auto">
         {/* ヘッダー */}
-        <div className="mb-8">
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
-              <div className="order-2 sm:order-1 flex flex-wrap gap-2">
+        <div className="mb-6 sm:mb-8">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
+              <div className="order-2 sm:order-1 flex flex-wrap gap-2 justify-center sm:justify-start">
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowHistory(true)}
-                  className="text-sm hover:bg-blue-100"
+                  className="text-xs sm:text-sm hover:bg-blue-100"
                 >
+                  <Calendar className="h-3 w-3 sm:hidden mr-1" />
                   履歴
                 </Button>
                 <Button 
                   variant="ghost" 
                   size="sm"
                   onClick={() => setShowMonthlyReport(true)}
-                  className="text-sm hover:bg-blue-100"
+                  className="text-xs sm:text-sm hover:bg-blue-100"
                 >
+                  <Calendar className="h-3 w-3 sm:hidden mr-1" />
                   レポート
                 </Button>
                 {isAdmin(session?.user?.email) && (
@@ -643,8 +645,9 @@ export default function Home() {
                     variant="ghost" 
                     size="sm"
                     onClick={() => setShowAdminDashboard(true)}
-                    className="text-sm hover:bg-blue-100"
+                    className="text-xs sm:text-sm hover:bg-blue-100"
                   >
+                    <Settings className="h-3 w-3 sm:hidden mr-1" />
                     管理者
                   </Button>
                 )}
@@ -653,32 +656,32 @@ export default function Home() {
                     variant="ghost" 
                     size="sm"
                     onClick={resetForNewDay}
-                    className="text-sm text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+                    className="text-xs sm:text-sm text-amber-700 hover:text-amber-800 hover:bg-amber-50"
                   >
                     リセット
                   </Button>
                 )}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-blue-900 order-1 sm:order-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-900 order-1 sm:order-2 text-center">
                 勤怠管理システム
               </h1>
-              <div className="flex flex-wrap gap-2 order-3">
+              <div className="flex flex-wrap gap-2 order-3 justify-center sm:justify-end">
                 <Button
                   variant="outline"
                   onClick={() => setShowSettings(true)}
-                  className="flex items-center gap-2 text-sm bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm bg-white hover:bg-blue-50 hover:border-blue-300 transition-colors"
                   size="sm"
                 >
-                  <Settings className="h-4 w-4" />
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">設定</span>
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => signOut({ callbackUrl: '/login' })}
-                  className="flex items-center gap-2 text-sm bg-white hover:bg-gray-100 hover:border-gray-300 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm bg-white hover:bg-gray-100 hover:border-gray-300 transition-colors"
                   size="sm"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">ログアウト</span>
                 </Button>
               </div>
@@ -690,9 +693,9 @@ export default function Home() {
         </div>
 
         {/* メインコンテンツ - 横並びレイアウト */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {/* 左カラム：勤怠記録・忙しさメーター・統計情報 */}
-          <div className="xl:col-span-2 space-y-6">
+          <div className="xl:col-span-2 space-y-4 sm:space-y-6">
             {/* 勤怠記録と忙しさメーター */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <AttendanceButtons
@@ -716,7 +719,7 @@ export default function Home() {
             </div>
 
             {/* 統計情報 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 items-stretch">
           <Card className="hover:shadow-lg transition-shadow bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300 border-2 h-full flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 py-3 bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-300">
               <CardTitle className="text-base font-semibold text-blue-900">今日の勤務時間</CardTitle>
