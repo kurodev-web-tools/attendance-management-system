@@ -139,6 +139,35 @@ export function WeeklyWorkTimeChart({ userId }: WeeklyWorkTimeChartProps) {
     )
   }
 
+  // データが少ない場合はメッセージを表示
+  const hasData = data.some(d => d.workMinutes > 0)
+  if (!hasData) {
+    const totalMinutes = data.reduce((sum, d) => sum + d.workMinutes, 0)
+    const workHours = Math.floor(totalMinutes / 60)
+    const workMinutes = totalMinutes % 60
+    
+    return (
+      <Card className="h-full flex flex-col">
+        <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
+          <CardTitle className="text-base font-semibold text-blue-900">週間勤務時間推移</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6 flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-900 mb-2">
+              {workHours}:{workMinutes.toString().padStart(2, '0')}
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              過去7日間の総勤務時間
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              データが少ないためグラフは表示しません
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">

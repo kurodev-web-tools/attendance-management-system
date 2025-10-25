@@ -113,15 +113,25 @@ export function BusyLevelChart({ userId }: BusyLevelChartProps) {
     )
   }
 
-  if (data.length === 0) {
+  // データが少ない場合はメッセージを表示
+  const hasData = data.some(d => d.level > 0)
+  if (!hasData || data.length === 0) {
     return (
       <Card className="h-full flex flex-col">
         <CardHeader className="bg-gradient-to-r from-blue-100 to-blue-200 border-b border-blue-200 py-3">
           <CardTitle className="text-base font-semibold text-blue-900">忙しさレベル推移</CardTitle>
         </CardHeader>
         <CardContent className="pt-6 flex-1 flex items-center justify-center">
-          <div className="text-gray-500">
-            忙しさレベルの記録がありません
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-900 mb-2">
+              0%
+            </div>
+            <p className="text-sm text-gray-600 mt-2">
+              現在の忙しさレベル
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              データが少ないためグラフは表示しません
+            </p>
           </div>
         </CardContent>
       </Card>
