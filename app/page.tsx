@@ -20,7 +20,6 @@ import { SettingsView } from '@/components/SettingsView'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
 import { supabase, AttendanceRecord } from '@/lib/supabase'
 import { calculateTodayWorkTime, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
-import { isAdmin } from '@/lib/admin'
 import { useUserSettings } from '@/hooks/useUserSettings'
 import { useLongWorkWarning } from '@/hooks/useLongWorkWarning'
 import { useOvertimeNotification } from '@/hooks/useOvertimeNotification'
@@ -43,6 +42,7 @@ export default function Home() {
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
   const [showMonthlyReport, setShowMonthlyReport] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [isAdminUser, setIsAdminUser] = useState(false)
 
   // 今日の日付を取得（日本時間基準）
   const today = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
@@ -332,6 +332,28 @@ export default function Home() {
       loadTodayData()
     }
   }, [session?.user, today, loadTodayData])
+
+  // 管理者権限をチェック
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (!session?.user?.email) return
+
+      try {
+        const response = await fetch('/api/admin/check', {
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setIsAdminUser(data.isAdmin)
+        }
+      } catch (error) {
+        console.error('管理者権限チェックエラー:', error)
+      }
+    }
+
+    checkAdminStatus()
+  }, [session?.user?.email])
 
   // ページフォーカス時に累積勤務時間を再計算
   useEffect(() => {
@@ -642,7 +664,7 @@ export default function Home() {
                   <Calendar className="h-3 w-3 sm:hidden mr-1" />
                   レポート
                 </Button>
-                {isAdmin(session?.user?.email) && (
+                {isAdminUser && (
                   <Button 
                     variant="ghost" 
                     size="sm"

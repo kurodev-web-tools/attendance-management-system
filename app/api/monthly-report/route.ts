@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { generateMonthlyReport } from '@/lib/monthlyReportUtils'
 
 export async function GET(request: NextRequest) {
   try {
+    // 認証チェック
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
     const year = parseInt(searchParams.get('year') || '2025')
@@ -12,6 +23,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'ユーザーIDが必要です' },
         { status: 400 }
+      )
+    }
+
+    // 権限チェック：自分自身または管理者の場合のみアクセス可能
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
+    const isAdmin = adminEmails.includes(session.user.email)
+    const isOwnData = userId === session.user.email
+
+    console.log('権限チェック:', {
+      ログインユーザー: session.user.email,
+      リクエストユーザー: userId,
+      管理者リスト: adminEmails,
+      管理者: isAdmin,
+      自分のデータ: isOwnData
+    })
+
+    if (!isAdmin && !isOwnData) {
+      return NextResponse.json(
+        { error: '権限がありません' },
+        { status: 403 }
       )
     }
 

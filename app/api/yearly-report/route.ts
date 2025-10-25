@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
 interface DailyReportData {
@@ -11,12 +13,33 @@ interface DailyReportData {
 
 export async function GET(request: NextRequest) {
   try {
+    // 認証チェック
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
     const searchParams = request.nextUrl.searchParams
     const userId = searchParams.get('userId')
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString())
 
     if (!userId) {
       return NextResponse.json({ error: 'ユーザーIDが必要です' }, { status: 400 })
+    }
+
+    // 権限チェック：自分自身または管理者の場合のみアクセス可能
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
+    const isAdmin = adminEmails.includes(session.user.email)
+    const isOwnData = userId === session.user.email
+
+    if (!isAdmin && !isOwnData) {
+      return NextResponse.json(
+        { error: '権限がありません' },
+        { status: 403 }
+      )
     }
 
     // 年の開始日と終了日
