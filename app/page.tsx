@@ -596,31 +596,33 @@ export default function Home() {
       <div className="max-w-4xl mx-auto">
         {/* ヘッダー */}
         <div className="text-center mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div></div>
-            <h1 className="text-3xl font-bold text-gray-900">
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+            <div className="order-2 sm:order-1"></div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 order-1 sm:order-2">
               勤怠管理システム
             </h1>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 order-3">
               <Button
                 variant="outline"
                 onClick={() => setShowSettings(true)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-sm"
+                size="sm"
               >
                 <Settings className="h-4 w-4" />
-                設定
+                <span className="hidden sm:inline">設定</span>
               </Button>
               <Button
                 variant="outline"
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 text-sm"
+                size="sm"
               >
                 <LogOut className="h-4 w-4" />
-                ログアウト
+                <span className="hidden sm:inline">ログアウト</span>
               </Button>
             </div>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-600 text-sm sm:text-base">
             こんにちは、{session.user?.name}さん！今日も一日お疲れ様です
           </p>
         </div>
@@ -828,17 +830,31 @@ export default function Home() {
         </div>
 
         {/* アクションボタン */}
-        <div className="flex justify-center gap-4">
-          <Button variant="outline" onClick={() => setShowHistory(true)}>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowHistory(true)}
+            size="sm"
+          >
             履歴確認
           </Button>
           {isAdmin(session?.user?.email) && (
-            <Button variant="outline" onClick={() => setShowAdminDashboard(true)} className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowAdminDashboard(true)} 
+              className="flex items-center gap-2"
+              size="sm"
+            >
               <Settings className="h-4 w-4" />
-              管理者ダッシュボード
+              <span className="hidden sm:inline">管理者</span>
+              <span className="sm:hidden">管理</span>
             </Button>
           )}
-          <Button variant="outline" onClick={() => setShowMonthlyReport(true)}>
+          <Button 
+            variant="outline" 
+            onClick={() => setShowMonthlyReport(true)}
+            size="sm"
+          >
             月次レポート
           </Button>
           {checkOutTime && (
@@ -846,6 +862,7 @@ export default function Home() {
               variant="outline" 
               onClick={resetForNewDay}
               className="bg-blue-50 hover:bg-blue-100"
+              size="sm"
             >
               リセット
             </Button>
