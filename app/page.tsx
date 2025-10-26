@@ -15,7 +15,7 @@ import { formatTime } from '@/lib/timeUtils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { Clock, TrendingUp, LogOut, Settings, Calendar } from 'lucide-react'
+import { Clock, TrendingUp, LogOut, Settings, Calendar, Download, Upload } from 'lucide-react'
 import { SettingsView } from '@/components/SettingsView'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
 import { supabase, AttendanceRecord } from '@/lib/supabase'
@@ -637,6 +637,95 @@ export default function Home() {
     }
   }
 
+  // バックアップダウンロード処理
+  const handleDownloadBackup = async () => {
+    try {
+      const response = await fetch('/api/backup')
+      
+      if (!response.ok) {
+        const error = await response.json()
+        toast.error(error.error || 'バックアップの取得に失敗しました')
+        return
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      
+      // Content-Dispositionヘッダーからファイル名を取得
+      const contentDisposition = response.headers.get('Content-Disposition')
+      const filename = contentDisposition 
+        ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') || 'backup.json'
+        : 'backup.json'
+      
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('バックアップをダウンロードしました')
+    } catch (error) {
+      console.error('バックアップダウンロードエラー:', error)
+      toast.error('バックアップのダウンロードに失敗しました')
+    }
+  }
+
+  // バックアップ復元処理
+  const handleRestoreBackup = async () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'application/json'
+    
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      try {
+        const text = await file.text()
+        const backupData = JSON.parse(text)
+
+        // バックアップデータの検証
+        if (!backupData.data || !backupData.timestamp) {
+          toast.error('無効なバックアップデータです')
+          return
+        }
+
+        // 確認ダイアログ
+        if (!confirm(
+          `バックアップ日時: ${new Date(backupData.timestamp).toLocaleString('ja-JP')}\n\n` +
+          'このバックアップから復元しますか？\n' +
+          '⚠️ 現在のデータは全て上書きされます。'
+        )) {
+          return
+        }
+
+        // 復元APIを呼び出し
+        const response = await fetch('/api/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(backupData),
+        })
+
+        const result = await response.json()
+
+        if (response.ok) {
+          toast.success('バックアップから復元しました')
+          // ページをリロードしてデータを最新化
+          window.location.reload()
+        } else {
+          toast.error(result.error || '復元に失敗しました')
+        }
+      } catch (error) {
+        console.error('復元エラー:', error)
+        toast.error('復元に失敗しました')
+      }
+    }
+    
+    input.click()
+  }
+
   return (
     <TooltipProvider>
       <div className="container mx-auto px-2 py-8">
@@ -665,15 +754,35 @@ export default function Home() {
                   レポート
                 </Button>
                 {isAdminUser && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setShowAdminDashboard(true)}
-                    className="text-xs sm:text-sm hover:bg-blue-100"
-                  >
-                    <Settings className="h-3 w-3 sm:hidden mr-1" />
-                    管理者
-                  </Button>
+                  <>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowAdminDashboard(true)}
+                      className="text-xs sm:text-sm hover:bg-blue-100"
+                    >
+                      <Settings className="h-3 w-3 sm:hidden mr-1" />
+                      管理者
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={handleDownloadBackup}
+                      className="text-xs sm:text-sm hover:bg-green-50 text-green-700"
+                    >
+                      <Download className="h-3 w-3 sm:hidden mr-1" />
+                      バックアップ
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={handleRestoreBackup}
+                      className="text-xs sm:text-sm hover:bg-amber-50 text-amber-700"
+                    >
+                      <Upload className="h-3 w-3 sm:hidden mr-1" />
+                      復元
+                    </Button>
+                  </>
                 )}
                 {checkOutTime && (
                   <Button 
