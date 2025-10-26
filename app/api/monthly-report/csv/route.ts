@@ -19,9 +19,24 @@ export async function GET(request: NextRequest) {
     const year = parseInt(searchParams.get('year') || '')
     const month = parseInt(searchParams.get('month') || '')
 
-    if (!userId || !year || !month) {
+    // 入力検証
+    if (!userId || userId.trim() === '' || !year || !month) {
       return NextResponse.json(
         { error: '必要なパラメータが不足しています' },
+        { status: 400 }
+      )
+    }
+
+    if (isNaN(year) || year < 2000 || year > 2100) {
+      return NextResponse.json(
+        { error: '無効な年が指定されました' },
+        { status: 400 }
+      )
+    }
+
+    if (isNaN(month) || month < 1 || month > 12) {
+      return NextResponse.json(
+        { error: '無効な月が指定されました' },
         { status: 400 }
       )
     }

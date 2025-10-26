@@ -26,8 +26,16 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString())
 
-    if (!userId) {
+    // 入力検証
+    if (!userId || userId.trim() === '') {
       return NextResponse.json({ error: 'ユーザーIDが必要です' }, { status: 400 })
+    }
+
+    if (isNaN(year) || year < 2000 || year > 2100) {
+      return NextResponse.json(
+        { error: '無効な年が指定されました' },
+        { status: 400 }
+      )
     }
 
     // 権限チェック：自分自身または管理者の場合のみアクセス可能
