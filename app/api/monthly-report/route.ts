@@ -31,14 +31,6 @@ export async function GET(request: NextRequest) {
     const isAdmin = adminEmails.includes(session.user.email)
     const isOwnData = userId === session.user.email
 
-    console.log('権限チェック:', {
-      ログインユーザー: session.user.email,
-      リクエストユーザー: userId,
-      管理者リスト: adminEmails,
-      管理者: isAdmin,
-      自分のデータ: isOwnData
-    })
-
     if (!isAdmin && !isOwnData) {
       return NextResponse.json(
         { error: '権限がありません' },
@@ -46,15 +38,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('月次レポート取得リクエスト:', { userId, year, month })
-
     const report = await generateMonthlyReport(userId, year, month)
-    
-    console.log('月次レポート生成完了:', { 
-      totalWorkMinutes: report.totalWorkMinutes,
-      workDays: report.workDays,
-      dailyDataCount: report.dailyData.length
-    })
 
     return NextResponse.json(report)
   } catch (error) {

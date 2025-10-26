@@ -1,11 +1,29 @@
 import { NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // 認証チェックはクライアントサイドで行うため、ここではスキップ
-    // TODO: 本番環境では適切な認証チェックを実装
-    console.log('従業員リストAPI - リクエスト')
+    // 認証チェック
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.email) {
+      return NextResponse.json(
+        { error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
+    // 管理者権限チェック
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(email => email.trim()) || []
+    const isAdmin = adminEmails.includes(session.user.email)
+
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: '管理者権限が必要です' },
+        { status: 403 }
+      )
+    }
 
     // 勤怠記録からユーザーIDを取得
     const { data: attendanceData, error } = await supabase
@@ -26,8 +44,6 @@ export async function GET() {
       user_id: userId,
       email: userId // 現在はemailをuser_idとして使用しているため
     }))
-
-    console.log('従業員リストAPI - 取得完了:', { employeeCount: employees.length })
     
     return NextResponse.json(employees)
   } catch (error) {

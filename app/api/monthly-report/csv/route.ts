@@ -38,19 +38,11 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('CSVエクスポートAPI - リクエスト:', { userId, year, month })
-    
     const reportData = await generateMonthlyReport(userId, year, month)
-    console.log('CSVエクスポートAPI - レポートデータ取得完了:', { 
-      totalWorkMinutes: reportData.totalWorkMinutes,
-      workDays: reportData.workDays,
-      dailyDataCount: reportData.dailyData.length
-    })
 
     // CSVデータを生成
     try {
       const csvData = generateCSV(reportData, userId, year, month)
-      console.log('CSVエクスポートAPI - CSVデータ生成完了:', { csvLength: csvData.length })
 
       return new NextResponse(csvData, {
         headers: {
@@ -89,8 +81,7 @@ function formatTimeForCSV(isoString: string | null): string {
     // UTC時刻をJST時刻に変換（+9時間）
     const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000))
     return jstDate.toISOString().substring(0, 19).replace('T', ' ') // YYYY-MM-DD HH:MM:SS形式
-  } catch (error) {
-    console.error('formatTimeForCSV エラー:', error, '入力:', isoString)
+  } catch {
     return ''
   }
 }
