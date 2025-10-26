@@ -18,12 +18,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Clock, TrendingUp, LogOut, Settings, Calendar, Download, Upload } from 'lucide-react'
 import { SettingsView } from '@/components/SettingsView'
 import { saveAttendanceRecord, getAttendanceRecord, saveBusyLevel, getBusyLevel } from '@/lib/database'
-import { supabase, AttendanceRecord } from '@/lib/supabase'
-import { calculateTodayWorkTime, calculateMinutesBetween, formatMinutesToTime } from '@/lib/timeUtils'
+import { supabase } from '@/lib/supabase'
+import { calculateTodayWorkTime, formatMinutesToTime } from '@/lib/timeUtils'
 import { useUserSettings } from '@/hooks/useUserSettings'
 import { useLongWorkWarning } from '@/hooks/useLongWorkWarning'
 import { useOvertimeNotification } from '@/hooks/useOvertimeNotification'
 import { useNotificationReminders } from '@/hooks/useNotificationReminders'
+import { useWorkTimeCalculation } from '@/hooks/useWorkTimeCalculation'
 import { logger } from '@/lib/logger'
 import { getToday, getCurrentTime } from '@/lib/dateUtils'
 
@@ -59,192 +60,13 @@ export default function Home() {
     null, // breakEndTime
     currentTime
   )
-  
-  // 累積勤務時間を計算（複数回の出退勤を考慮）
-  const [totalWorkMinutes, setTotalWorkMinutes] = useState(0)
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [workDaysStats, setWorkDaysStats] = useState({
-    monthlyWorkDays: 0,
-    yearlyWorkDays: 0,
-  })
-  
-  useEffect(() => {
-    // 累積勤務時間と勤務日数を計算
-    const calculateTotalWorkTime = async () => {
-      if (session?.user?.email) {
-        try {
-            // 今日の全ての勤怠記録を取得
-            const { data: allRecords } = await supabase
-              .from('attendance_records')
-              .select('*')
-              .eq('user_id', session.user.email)
-            .eq('date', today)
-            .not('check_in_time', 'is', null)
-            .order('created_at', { ascending: true }) // 時系列順でソート
-          
-          if (allRecords && allRecords.length > 0) {
-            let totalMinutes = 0
-            
-            // 出勤・退勤ペアを正しく処理（日付ごとにグループ化）
-            const recordsByDate = allRecords.reduce((groups, record) => {
-              const date = record.date
-              if (!groups[date]) {
-                groups[date] = []
-              }
-              groups[date].push(record)
-              return groups
-            }, {} as Record<string, typeof allRecords>)
-            
-            // 各日の勤務時間を計算
-            Object.values(recordsByDate).forEach(dayRecords => {
-              const records = dayRecords as AttendanceRecord[]
-              // 作成日時順でソート
-              const sortedRecords = records.sort((a, b) => 
-                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-              )
-              
-              // 重複を除去してユニークな出退勤ペアを構築
-              const uniqueRecords = new Map<string, AttendanceRecord>()
-              
-              sortedRecords.forEach((record, index) => {
-                logger.debug(`レコード処理 [${index + 1}]:`, {
-                  出勤: record.check_in_time,
-                  退勤: record.check_out_time,
-                  作成日時: record.created_at
-                })
-                
-                if (record.check_in_time) {
-                  const key = `${record.check_in_time}`
-                  if (!uniqueRecords.has(key) || !uniqueRecords.get(key)?.check_out_time) {
-                    uniqueRecords.set(key, record)
-                  }
-                }
-              })
-              
-              // ユニークなレコードから勤務時間を計算
-              uniqueRecords.forEach((record) => {
-                if (record.check_in_time && record.check_out_time) {
-                  // 完了したペアの場合
-                  const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
-                  totalMinutes += minutes
-                  logger.debug(`勤務時間計算 [完了済み]:`, {
-                    checkInTime: record.check_in_time,
-                    checkOutTime: record.check_out_time,
-                    minutes,
-                    totalMinutes
-                  })
-                } else if (record.check_in_time && !record.check_out_time) {
-                  // 現在勤務中の場合
-                  const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
-                  totalMinutes += minutes
-                  logger.debug(`勤務時間計算 [現在勤務中]:`, {
-                    checkInTime: record.check_in_time,
-                    checkOutTime: '現在時刻',
-                    minutes,
-                    totalMinutes
-                  })
-                }
-              })
-              
-            })
-            
-            // デバッグ情報を追加
-            logger.debug('累積勤務時間計算詳細:', {
-              allRecordsCount: allRecords.length,
-              isCheckedIn,
-              checkOutTime,
-              totalMinutes
-            })
-            
-            setTotalWorkMinutes(totalMinutes)
-            logger.debug('最終累積勤務時間:', totalMinutes)
-            
-            // 勤務日数を計算
-            await calculateWorkDays()
-          }
-        } catch (error) {
-          console.error('累積勤務時間の計算エラー:', error)
-        }
-      }
-    }
 
-    // 勤務日数を計算する関数
-    const calculateWorkDays = async () => {
-      if (session?.user?.email) {
-        try {
-          const currentDate = new Date()
-          const currentYear = currentDate.getFullYear()
-          const currentMonth = currentDate.getMonth() + 1
-          const currentDay = currentDate.getDate()
-          
-          // 今月の開始日と終了日を計算
-          const monthStart = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-01`
-          const monthEnd = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`
-          
-          // 今年の開始日を計算
-          const yearStart = `${currentYear}-01-01`
-          const yearEnd = `${currentYear}-${currentMonth.toString().padStart(2, '0')}-${currentDay.toString().padStart(2, '0')}`
-          
-          // 今月の勤怠記録を取得
-          const { data: monthlyRecords } = await supabase
-            .from('attendance_records')
-            .select('date, check_in_time, check_out_time')
-            .eq('user_id', session.user.email)
-            .gte('date', monthStart)
-            .lte('date', monthEnd)
-            .not('check_in_time', 'is', null)
-          
-          // 今年の勤怠記録を取得
-          const { data: yearlyRecords } = await supabase
-            .from('attendance_records')
-            .select('date, check_in_time, check_out_time')
-            .eq('user_id', session.user.email)
-            .gte('date', yearStart)
-            .lte('date', yearEnd)
-            .not('check_in_time', 'is', null)
-          
-          if (monthlyRecords && yearlyRecords) {
-            // 月間勤務日数を計算
-            const monthlyWorkDaysByDate = new Set<string>()
-            monthlyRecords.forEach(record => {
-              if (record.check_in_time) {
-                monthlyWorkDaysByDate.add(record.date)
-              }
-            })
-            
-            // 年間勤務日数を計算
-            const yearlyWorkDaysByDate = new Set<string>()
-            yearlyRecords.forEach(record => {
-              if (record.check_in_time) {
-                yearlyWorkDaysByDate.add(record.date)
-              }
-            })
-            
-            const monthlyWorkDays = monthlyWorkDaysByDate.size
-            const yearlyWorkDays = yearlyWorkDaysByDate.size
-            
-            setWorkDaysStats({
-              monthlyWorkDays,
-              yearlyWorkDays
-            })
-            
-            logger.debug('勤務日数計算完了:', {
-              monthlyWorkDays,
-              yearlyWorkDays,
-              monthStart,
-              monthEnd,
-              yearStart,
-              yearEnd
-            })
-          }
-        } catch (error) {
-          console.error('勤務日数の計算エラー:', error)
-        }
-      }
-    }
-
-    calculateTotalWorkTime()
-  }, [session?.user?.email, today, isCheckedIn, checkOutTime, checkInTime, refreshTrigger])
+  // 累積勤務時間と勤務日数を計算（useWorkTimeCalculationフックを使用）
+  const { totalWorkMinutes, workDaysStats, refresh: refreshWorkTime } = useWorkTimeCalculation(
+    session?.user?.email || undefined,
+    isCheckedIn,
+    checkOutTime
+  )
 
   // 今日のデータを読み込み
   const loadTodayData = useCallback(async () => {
@@ -360,12 +182,12 @@ export default function Home() {
   // ページフォーカス時に累積勤務時間を再計算
   useEffect(() => {
     const handleFocus = () => {
-      setRefreshTrigger(prev => prev + 1)
+      refreshWorkTime()
     }
 
     window.addEventListener('focus', handleFocus)
     return () => window.removeEventListener('focus', handleFocus)
-  }, [])
+  }, [refreshWorkTime])
 
   // 勤務時間をリアルタイム更新（10分ごと）
   useEffect(() => {
@@ -584,7 +406,6 @@ export default function Home() {
     setCheckOutTime(undefined)
     setBusyLevel(50)
     setBusyComment('')
-    setTotalWorkMinutes(0) // 累積勤務時間もリセット
 
     // データベースのレコードを完全に削除
     try {
@@ -898,76 +719,8 @@ export default function Home() {
                   <button
                     className="flex items-center justify-center p-1 rounded hover:bg-blue-50 transition-colors"
                     onClick={() => {
-                  // 累積勤務時間を再計算
-                  const calculateTotalWorkTime = async () => {
-                    if (!session?.user?.email) return
-                    
-                    try {
-                      const { data: allRecords, error } = await supabase
-                        .from('attendance_records')
-                        .select('*')
-                        .eq('user_id', session.user.email)
-                        .order('created_at', { ascending: true })
-                      
-                      if (error) throw error
-                      
-                      let totalMinutes = 0
-                      
-                      // 出勤・退勤ペアを正しく処理（日付ごとにグループ化）
-                      const recordsByDate = allRecords.reduce((groups, record) => {
-                        const date = record.date
-                        if (!groups[date]) {
-                          groups[date] = []
-                        }
-                        groups[date].push(record)
-                        return groups
-                      }, {} as Record<string, typeof allRecords>)
-                      
-                      // 各日の勤務時間を計算
-                      Object.values(recordsByDate).forEach(dayRecords => {
-                        const records = dayRecords as AttendanceRecord[]
-                        // 作成日時順でソート
-                        const sortedRecords = records.sort((a, b) => 
-                          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-                        )
-                        
-                        // 重複を除去してユニークな出退勤ペアを構築
-                        const uniqueRecords = new Map<string, AttendanceRecord>()
-                        
-                        sortedRecords.forEach((record) => {
-                          if (record.check_in_time) {
-                            const key = `${record.check_in_time}`
-                            if (!uniqueRecords.has(key) || !uniqueRecords.get(key)?.check_out_time) {
-                              uniqueRecords.set(key, record)
-                            }
-                          }
-                        })
-                        
-                        // ユニークなレコードから勤務時間を計算
-                        uniqueRecords.forEach((record) => {
-                          if (record.check_in_time && record.check_out_time) {
-                            // 完了したペアの場合
-                            const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
-                            totalMinutes += minutes
-                          } else if (record.check_in_time && !record.check_out_time) {
-                            // 現在勤務中の場合
-                            const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
-                            totalMinutes += minutes
-                          }
-                        })
-                      })
-                      
-                                             setTotalWorkMinutes(totalMinutes)
-                       logger.debug('累積勤務時間を再計算:', totalMinutes)
-                      // refreshTriggerを更新してuseEffectをトリガー
-                      setRefreshTrigger(prev => prev + 1)
-                    } catch (error) {
-                      console.error('累積勤務時間の再計算エラー:', error)
-                    }
-                  }
-                  
-                  calculateTotalWorkTime()
-                }}
+                      refreshWorkTime()
+                    }}
                 title="累積勤務時間を更新"
               >
                 <Clock className="h-5 w-5 text-blue-600" />
