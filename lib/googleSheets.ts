@@ -19,13 +19,11 @@ const sheets = auth ? google.sheets({ version: 'v4', auth }) : null
 
 // 認証のテスト（認証情報が設定されている場合のみ）
 if (auth) {
-  auth.getAccessToken().then(token => {
-    console.log('Google Sheets認証テスト成功:', !!token)
+  auth.getAccessToken().then(() => {
+    // 認証成功
   }).catch(error => {
     console.error('Google Sheets認証テスト失敗:', error)
   })
-} else {
-  console.log('Google Sheets API認証情報が設定されていません')
 }
 
 /**
@@ -42,13 +40,6 @@ export async function writeMonthlyReportToSheet(
   }
 
   try {
-    // 認証情報のデバッグ
-    console.log('Google Sheets認証情報:', {
-      serviceAccountEmail: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      hasPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
-      privateKeyLength: process.env.GOOGLE_PRIVATE_KEY?.length
-    })
-
     // スプレッドシートを作成
     const spreadsheet = await sheets.spreadsheets.create({
       requestBody: {

@@ -47,14 +47,6 @@ export function useLongWorkWarning(settings: UserSettings | null, checkInTime: s
     const now = new Date()
     const delay = warningTime.getTime() - now.getTime()
 
-    console.log('長時間勤務警告設定:', {
-      checkInTime,
-      warningHours: settings.long_work_notification_hours,
-      warningMinutes,
-      warningTime: warningTime.toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}),
-      delayMinutes: delay / 1000 / 60
-    })
-
     if (delay > 0) {
       warningTimeoutRef.current = setTimeout(() => {
         if (!hasWarnedRef.current) {
@@ -63,7 +55,6 @@ export function useLongWorkWarning(settings: UserSettings | null, checkInTime: s
             `${settings.long_work_notification_hours}時間を超える長時間勤務中です。休憩を取ることをお勧めします。`
           )
           hasWarnedRef.current = true
-          console.log('長時間勤務警告を表示しました')
         }
       }, delay)
     }

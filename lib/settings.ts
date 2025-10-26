@@ -35,19 +35,11 @@ export const DEFAULT_SETTINGS: Omit<UserSettings, 'id' | 'user_id' | 'created_at
 // ユーザー設定を取得
 export const getUserSettings = async (userId: string): Promise<UserSettings | null> => {
   try {
-    console.log('設定取得 - userId:', userId)
-    
-    // 認証状態を確認
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    console.log('Supabase認証状態:', { session, sessionError })
-    
     const { data, error } = await supabase
       .from('user_settings')
       .select('*')
       .eq('user_id', userId)
       .single()
-
-    console.log('設定取得結果:', { data, error })
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
       throw error
@@ -55,7 +47,6 @@ export const getUserSettings = async (userId: string): Promise<UserSettings | nu
 
     if (!data) {
       // 設定が存在しない場合はデフォルト設定を返す（データベースに保存しない）
-      console.log('設定が存在しないため、デフォルト設定を返します')
       return {
         id: '',
         user_id: userId,
@@ -91,7 +82,6 @@ export const createDefaultSettings = async (userId: string): Promise<UserSetting
     return data
   } catch (error) {
     console.error('デフォルト設定の作成エラー:', error)
-    console.error('エラーの詳細:', JSON.stringify(error, null, 2))
     throw error
   }
 }
@@ -99,15 +89,11 @@ export const createDefaultSettings = async (userId: string): Promise<UserSetting
 // ユーザー設定を更新
 export const updateUserSettings = async (userId: string, settings: Partial<UserSettings>): Promise<UserSettings> => {
   try {
-    // 設定データの検証
-    console.log('更新する設定データ:', settings)
-    
     // まず既存の設定を確認
     const existingSettings = await getUserSettings(userId)
     
     if (!existingSettings || !existingSettings.id) {
       // 設定が存在しない場合は新規作成
-      console.log('既存設定が存在しないため、新規作成します')
       return await createDefaultSettings(userId)
     }
 
@@ -115,8 +101,6 @@ export const updateUserSettings = async (userId: string, settings: Partial<UserS
       ...settings,
       updated_at: new Date().toISOString()
     }
-
-    console.log('Supabaseに送信するデータ:', updateData)
 
     const { data, error } = await supabase
       .from('user_settings')
@@ -130,7 +114,6 @@ export const updateUserSettings = async (userId: string, settings: Partial<UserS
       throw error
     }
 
-    console.log('更新成功:', data)
     return data
   } catch (error) {
     console.error('設定の更新エラー:', error)

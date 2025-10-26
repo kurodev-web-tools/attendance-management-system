@@ -15,7 +15,6 @@ export function useNotificationReminders(settings: UserSettings | null) {
   // 通知の許可を確認・要求
   const requestNotificationPermission = async (): Promise<boolean> => {
     if (!('Notification' in window)) {
-      console.log('このブラウザは通知をサポートしていません')
       return false
     }
 
@@ -24,7 +23,6 @@ export function useNotificationReminders(settings: UserSettings | null) {
     }
 
     if (Notification.permission === 'denied') {
-      console.log('通知が拒否されています')
       return false
     }
 
@@ -60,13 +58,11 @@ export function useNotificationReminders(settings: UserSettings | null) {
   // リマインダーを設定
   const setReminders = async () => {
     if (!settings || !settings.notification_enabled) {
-      console.log('通知が無効または設定がありません')
       return
     }
 
     const hasPermission = await requestNotificationPermission()
     if (!hasPermission) {
-      console.log('通知の許可が得られませんでした')
       return
     }
 
@@ -78,21 +74,12 @@ export function useNotificationReminders(settings: UserSettings | null) {
     const startTimeMinutes = timeToMinutes(settings.recommended_start_time)
     const endTimeMinutes = timeToMinutes(settings.recommended_end_time)
 
-    console.log('リマインダー設定:', {
-      currentMinutes,
-      startTimeMinutes,
-      endTimeMinutes,
-      checkInReminder: settings.check_in_reminder_minutes,
-      checkOutReminder: settings.check_out_reminder_minutes
-    })
-
     // 出勤リマインダー
     if (settings.check_in_reminder_minutes > 0) {
       const reminderTime = startTimeMinutes - settings.check_in_reminder_minutes
       const delay = (reminderTime - currentMinutes) * 60 * 1000 // ミリ秒に変換
 
       if (delay > 0) {
-        console.log(`出勤リマインダーを${delay / 1000 / 60}分後に設定`)
         const timeout = setTimeout(() => {
           showNotification(
             '出勤リマインダー',
@@ -109,7 +96,6 @@ export function useNotificationReminders(settings: UserSettings | null) {
       const delay = (reminderTime - currentMinutes) * 60 * 1000 // ミリ秒に変換
 
       if (delay > 0) {
-        console.log(`退勤リマインダーを${delay / 1000 / 60}分後に設定`)
         const timeout = setTimeout(() => {
           showNotification(
             '退勤リマインダー',

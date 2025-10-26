@@ -46,14 +46,6 @@ export function useOvertimeNotification(settings: UserSettings | null, checkInTi
     const now = new Date()
     const delay = overtimeTime.getTime() - now.getTime()
 
-    console.log('残業通知設定:', {
-      checkInTime,
-      overtimeHours: settings.overtime_notification_hours,
-      overtimeMinutes,
-      overtimeTime: overtimeTime.toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}),
-      delayMinutes: delay / 1000 / 60
-    })
-
     if (delay > 0) {
       notificationTimeoutRef.current = setTimeout(() => {
         if (!hasNotifiedRef.current) {
@@ -62,7 +54,6 @@ export function useOvertimeNotification(settings: UserSettings | null, checkInTi
             `${settings.overtime_notification_hours}時間の残業時間に達しました。お疲れ様です！`
           )
           hasNotifiedRef.current = true
-          console.log('残業通知を表示しました')
         }
       }, delay)
     }

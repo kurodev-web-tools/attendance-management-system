@@ -20,8 +20,6 @@ export async function saveAttendanceRecord(record: Partial<AttendanceRecord>) {
     check_in_time: record.check_in_time === undefined ? null : record.check_in_time,
     check_out_time: record.check_out_time === undefined ? null : record.check_out_time,
   }
-  
-  console.log('保存する勤怠データ:', cleanRecord)
 
   // 複数回の出退勤記録を保持するため、常に新しいレコードを挿入
   const { data, error } = await supabase
@@ -51,11 +49,8 @@ export async function getAttendanceRecord(userId: string, date: string) {
     throw error
   }
 
-  console.log('取得した勤怠データ（全レコード）:', data)
-  
   // データが存在する場合は最新のレコードを返す
   const record = data && data.length > 0 ? data[0] : null
-  console.log('取得した勤怠データ（最新）:', record)
   
   return record
 }

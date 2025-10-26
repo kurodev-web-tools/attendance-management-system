@@ -59,7 +59,6 @@ export function calculateMinutesBetween(startTime: string, endTime: string): num
     }
     
     const diffMinutes = Math.max(1, endMinutes - startMinutes)
-    console.log(`calculateMinutesBetween - ${startTime} to ${endTime}: ${diffMinutes}分`)
     return diffMinutes
   } catch (error) {
     console.error('calculateMinutesBetween エラー:', error)
@@ -80,29 +79,23 @@ export function formatTime(timeString: string): string {
   try {
     if (!timeString) return '--:--'
     
-    console.log(`formatTime - 入力: ${timeString}`)
-    
     // 時刻文字列から時刻部分を抽出
     if (timeString.includes('T')) {
       // ISO形式の場合（例：2025-10-23T23:22:00）
       const timePart = timeString.split('T')[1]?.substring(0, 5) || ''
-      console.log(`formatTime - ISO形式抽出: ${timePart}`)
       return timePart
     } else if (timeString.includes(':')) {
       // スラッシュ形式の場合（例：2025/10/23 23:22:00）
       const timeMatch = timeString.match(/(\d{2}:\d{2})/)
       if (timeMatch) {
-        console.log(`formatTime - スラッシュ形式抽出: ${timeMatch[1]}`)
         return timeMatch[1]
       }
       
       // 時刻形式の場合（例：23:22:00）
       const result = timeString.substring(0, 5)
-      console.log(`formatTime - 時刻形式抽出: ${result}`)
       return result
     } else {
       // その他の場合はそのまま返す
-      console.log(`formatTime - そのまま返す: ${timeString}`)
       return timeString
     }
   } catch (error) {
@@ -152,13 +145,6 @@ export function calculateTodayWorkTime(
       // 勤務中の場合：出勤時刻から現在時刻までの勤務時間
       totalWorkMinutes = calculateMinutesBetween(checkInTime, now)
     }
-    
-    console.log('勤務時間計算:', {
-      checkInTime,
-      checkOutTime: checkOutTime || '勤務中',
-      totalWorkMinutes,
-      isCurrentlyWorking: !checkOutTime
-    })
   }
 
   // 休憩時間は常に0（休憩システムを削除）
