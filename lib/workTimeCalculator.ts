@@ -85,10 +85,12 @@ export function calculateWorkTimeFromRecords(
 
 /**
  * 勤務日数を計算
- * @param records 勤怠記録の配列
+ * @param records 勤怠記録の配列（部分的なフィールドでも可）
  * @returns ユニークな勤務日数のセット
  */
-export function calculateWorkDays(records: AttendanceRecord[]): Set<string> {
+export function calculateWorkDays(
+  records: Array<{ date: string; check_in_time?: string | null }>
+): Set<string> {
   const workDaysByDate = new Set<string>()
 
   records.forEach(record => {

@@ -58,3 +58,4 @@ export const criticalLogger = {
     console.error('[CRITICAL]', ...args)
   },
 }
+

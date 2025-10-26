@@ -24,6 +24,8 @@ import { useUserSettings } from '@/hooks/useUserSettings'
 import { useLongWorkWarning } from '@/hooks/useLongWorkWarning'
 import { useOvertimeNotification } from '@/hooks/useOvertimeNotification'
 import { useNotificationReminders } from '@/hooks/useNotificationReminders'
+import { logger } from '@/lib/logger'
+import { getToday, getCurrentTime } from '@/lib/dateUtils'
 
 export default function Home() {
   const { data: session, status } = useSession()
@@ -37,7 +39,7 @@ export default function Home() {
   const [busyLevel, setBusyLevel] = useState(50)
   const [busyComment, setBusyComment] = useState('')
   const [loading, setLoading] = useState(false)
-  const [currentTime, setCurrentTime] = useState<string>(new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
+  const [currentTime, setCurrentTime] = useState<string>(getCurrentTime())
   const [showHistory, setShowHistory] = useState(false)
   const [showAdminDashboard, setShowAdminDashboard] = useState(false)
   const [showMonthlyReport, setShowMonthlyReport] = useState(false)
@@ -45,8 +47,8 @@ export default function Home() {
   const [isAdminUser, setIsAdminUser] = useState(false)
 
   // 今日の日付を取得（日本時間基準）
-  const today = new Date().toLocaleDateString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').split('-').map((v, i) => i === 1 || i === 2 ? v.padStart(2, '0') : v).join('-')
-  console.log('今日の日付（日本時間）:', today)
+  const today = getToday()
+  logger.debug('今日の日付（日本時間）:', today)
 
 
   // 今日の勤務時間を計算（currentTimeを依存関係に追加してリアルタイム更新）
@@ -105,7 +107,7 @@ export default function Home() {
               const uniqueRecords = new Map<string, AttendanceRecord>()
               
               sortedRecords.forEach((record, index) => {
-                console.log(`レコード処理 [${index + 1}]:`, {
+                logger.debug(`レコード処理 [${index + 1}]:`, {
                   出勤: record.check_in_time,
                   退勤: record.check_out_time,
                   作成日時: record.created_at
@@ -125,7 +127,7 @@ export default function Home() {
                   // 完了したペアの場合
                   const minutes = calculateMinutesBetween(record.check_in_time, record.check_out_time)
                   totalMinutes += minutes
-                  console.log(`勤務時間計算 [完了済み]:`, {
+                  logger.debug(`勤務時間計算 [完了済み]:`, {
                     checkInTime: record.check_in_time,
                     checkOutTime: record.check_out_time,
                     minutes,
@@ -135,7 +137,7 @@ export default function Home() {
                   // 現在勤務中の場合
                   const minutes = calculateMinutesBetween(record.check_in_time, new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))
                   totalMinutes += minutes
-                  console.log(`勤務時間計算 [現在勤務中]:`, {
+                  logger.debug(`勤務時間計算 [現在勤務中]:`, {
                     checkInTime: record.check_in_time,
                     checkOutTime: '現在時刻',
                     minutes,
@@ -147,7 +149,7 @@ export default function Home() {
             })
             
             // デバッグ情報を追加
-            console.log('累積勤務時間計算詳細:', {
+            logger.debug('累積勤務時間計算詳細:', {
               allRecordsCount: allRecords.length,
               isCheckedIn,
               checkOutTime,
@@ -155,7 +157,7 @@ export default function Home() {
             })
             
             setTotalWorkMinutes(totalMinutes)
-            console.log('最終累積勤務時間:', totalMinutes)
+            logger.debug('最終累積勤務時間:', totalMinutes)
             
             // 勤務日数を計算
             await calculateWorkDays()
@@ -226,7 +228,7 @@ export default function Home() {
               yearlyWorkDays
             })
             
-            console.log('勤務日数計算完了:', {
+            logger.debug('勤務日数計算完了:', {
               monthlyWorkDays,
               yearlyWorkDays,
               monthStart,
@@ -257,20 +259,20 @@ export default function Home() {
           // 勤怠記録を取得
           try {
             const attendanceData = await getAttendanceRecord(userId, today)
-            console.log('読み込んだ勤怠データ:', attendanceData)
+            logger.debug('読み込んだ勤怠データ:', attendanceData)
             
             if (attendanceData) {
               // 最新の出勤記録のみを使用（退勤後に再度出勤した場合）
               const latestCheckIn = attendanceData.check_in_time
               const latestCheckOut = attendanceData.check_out_time
               
-              console.log('出勤時刻（日本時間）:', latestCheckIn)
-              console.log('退勤時刻（日本時間）:', latestCheckOut)
+              logger.debug('出勤時刻（日本時間）:', latestCheckIn)
+              logger.debug('退勤時刻（日本時間）:', latestCheckOut)
               if (latestCheckIn) {
-                console.log('出勤時刻（表示）:', formatTime(latestCheckIn))
+                logger.debug('出勤時刻（表示）:', formatTime(latestCheckIn))
               }
               if (latestCheckOut) {
-                console.log('退勤時刻（表示）:', formatTime(latestCheckOut))
+                logger.debug('退勤時刻（表示）:', formatTime(latestCheckOut))
               }
               
               // 出勤状態の判定：出勤時刻があり、退勤時刻がない場合は勤務中
@@ -278,12 +280,12 @@ export default function Home() {
               setIsCheckedIn(isCurrentlyWorking)
               
               // デバッグ情報
-              console.log('=== 出勤状態判定 ===')
-              console.log('出勤時刻:', latestCheckIn)
-              console.log('退勤時刻:', latestCheckOut)
-              console.log('判定結果:', isCurrentlyWorking ? '出勤中' : '退勤済み')
-              console.log('==================')
-              console.log('退勤後の出勤時刻保持確認:', { 
+              logger.debug('=== 出勤状態判定 ===')
+              logger.debug('出勤時刻:', latestCheckIn)
+              logger.debug('退勤時刻:', latestCheckOut)
+              logger.debug('判定結果:', isCurrentlyWorking ? '出勤中' : '退勤済み')
+              logger.debug('==================')
+              logger.debug('退勤後の出勤時刻保持確認:', { 
                 checkInTime: latestCheckIn, 
                 checkOutTime: latestCheckOut,
                 shouldShowCheckIn: latestCheckIn ? '表示する' : '表示しない'
@@ -300,8 +302,8 @@ export default function Home() {
               setCheckInTime(normalizeTimeString(latestCheckIn))
               setCheckOutTime(normalizeTimeString(latestCheckOut))
               
-              console.log('設定された出勤時刻（日本時間）:', normalizeTimeString(latestCheckIn))
-              console.log('設定された退勤時刻（日本時間）:', normalizeTimeString(latestCheckOut))
+              logger.debug('設定された出勤時刻（日本時間）:', normalizeTimeString(latestCheckIn))
+              logger.debug('設定された退勤時刻（日本時間）:', normalizeTimeString(latestCheckOut))
             }
           } catch (attendanceError) {
             console.error('勤怠記録の読み込みエラー:', attendanceError)
@@ -413,7 +415,7 @@ export default function Home() {
           onBack={() => setShowHistory(false)}
           onUpdate={() => {
             // 履歴データの再取得をトリガー
-            console.log('履歴データの再取得をトリガー')
+            logger.debug('履歴データの再取得をトリガー')
           }}
         />
       </div>
@@ -461,25 +463,25 @@ export default function Home() {
     setLoading(true)
     // 日本時間で現在時刻を取得（ISO形式で統一）
     const now = new Date().toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}).replace(/\//g, '-').replace(' ', 'T').replace(/\//g, '-').replace(' ', 'T')
-    console.log('保存する時刻（日本時間）:', now)
-    console.log('表示時刻（JST）:', now)
+    logger.debug('保存する時刻（日本時間）:', now)
+    logger.debug('表示時刻（JST）:', now)
     
     // 重複防止：ローディング中は処理をスキップ
     if (loading) {
-      console.log('既に処理中です。処理をスキップします。')
+      logger.debug('既に処理中です。処理をスキップします。')
       return
     }
 
     // 再出勤時の状態管理
-    console.log('=== 再出勤処理開始 ===')
-    console.log('現在の状態:', {
+    logger.debug('=== 再出勤処理開始 ===')
+    logger.debug('現在の状態:', {
       isCheckedIn,
       checkInTime,
       checkOutTime,
       totalWorkMinutes
     })
-    console.log('現在の退勤時刻:', checkOutTime)
-    console.log('退勤時刻を保持:', checkOutTime ? 'はい' : 'いいえ')
+    logger.debug('現在の退勤時刻:', checkOutTime)
+    logger.debug('退勤時刻を保持:', checkOutTime ? 'はい' : 'いいえ')
     
     // 忙しさレベルをリセット
     setBusyLevel(50)
@@ -490,7 +492,7 @@ export default function Home() {
 
     try {
       // 再出勤記録を保存（前回の退勤記録を保持しつつ新しい出勤記録を追加）
-      console.log('保存する勤怠データ:', {
+      logger.debug('保存する勤怠データ:', {
         user_id: session.user.email,
         date: today,
         check_in_time: now,
@@ -533,13 +535,13 @@ export default function Home() {
     
     // 重複防止：ローディング中は処理をスキップ
     if (loading) {
-      console.log('既に処理中です。処理をスキップします。')
+      logger.debug('既に処理中です。処理をスキップします。')
       return
     }
 
-    console.log('=== 退勤処理開始 ===')
-    console.log('退勤時刻:', now)
-    console.log('現在の出勤時刻:', checkInTime)
+    logger.debug('=== 退勤処理開始 ===')
+    logger.debug('退勤時刻:', now)
+    logger.debug('現在の出勤時刻:', checkInTime)
     
     setIsCheckedIn(false)
 
@@ -955,8 +957,8 @@ export default function Home() {
                         })
                       })
                       
-                      setTotalWorkMinutes(totalMinutes)
-                      console.log('累積勤務時間を再計算:', totalMinutes)
+                                             setTotalWorkMinutes(totalMinutes)
+                       logger.debug('累積勤務時間を再計算:', totalMinutes)
                       // refreshTriggerを更新してuseEffectをトリガー
                       setRefreshTrigger(prev => prev + 1)
                     } catch (error) {

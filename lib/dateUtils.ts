@@ -47,7 +47,7 @@ export function getMonthRange(year: number, month: number) {
 /**
  * 年の範囲を取得
  */
-export function getYearRange(year: number, month?: number, day?: number) {
+export function getYearRange(year: number) {
   const currentDate = new Date()
   const currentYear = currentDate.getFullYear()
   const currentMonth = currentDate.getMonth() + 1

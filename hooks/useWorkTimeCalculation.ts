@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, AttendanceRecord } from '@/lib/supabase'
-import { calculateWorkTimeFromRecords, calculateWorkDays } from '@/lib/workTimeCalculator'
+import { calculateWorkTimeFromRecords, calculateWorkDays as calculateDays } from '@/lib/workTimeCalculator'
 import { getToday, getMonthRange, getYearRange } from '@/lib/dateUtils'
 import { logger } from '@/lib/logger'
 
@@ -86,8 +86,8 @@ export function useWorkTimeCalculation(userEmail: string | undefined, isCheckedI
           .not('check_in_time', 'is', null)
 
         if (monthlyRecords && yearlyRecords) {
-          const monthlyWorkDaysSet = calculateWorkDays(monthlyRecords as AttendanceRecord[])
-          const yearlyWorkDaysSet = calculateWorkDays(yearlyRecords as AttendanceRecord[])
+          const monthlyWorkDaysSet = calculateDays(monthlyRecords)
+          const yearlyWorkDaysSet = calculateDays(yearlyRecords)
 
           const monthlyWorkDays = monthlyWorkDaysSet.size
           const yearlyWorkDays = yearlyWorkDaysSet.size
