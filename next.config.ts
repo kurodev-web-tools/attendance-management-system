@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-slider']
   },
+  // CSRF保護を有効化
+  poweredByHeader: false,
   // メモリ使用量の最適化
   webpack: (config, { isServer }) => {
     if (!isServer) {
